@@ -281,39 +281,90 @@ export const getNextResponseFromSupervisor = tool({
     const history: RealtimeItem[] = (details?.context as any)?.history ?? [];
     const filteredLogs = history.filter((log) => log.type === 'message');
 
-    const body: any = {
-      model: 'gpt-4.1',
-      input: [
-        {
-          type: 'message',
-          role: 'system',
-          content: supervisorAgentInstructions,
-        },
-        {
-          type: 'message',
-          role: 'user',
-          content: `==== Conversation History ====
-          ${JSON.stringify(filteredLogs, null, 2)}
-          
-          ==== Relevant Context From Last User Message ===
-          ${relevantContextFromLastUserMessage}
-          `,
-        },
-      ],
-      tools: supervisorAgentTools,
-    };
+    // Use details.context to persist the chatbot sessionId across calls when available.
+    const ctx = (details?.context as any) ?? {};
+    const sessionId = ctx.chatbotSessionId ?? null;
 
-    const response = await fetchResponsesMessage(body);
-    if (response.error) {
+    // Build a single "question" payload that includes conversation history and the
+    // relevant context from the last user message. This string will be sent to the
+    // external chatbot API at http://localhost:8003 using the required schema.
+    const question = `==== Supervisor Instructions ====
+${supervisorAgentInstructions}
+
+==== Conversation History ====
+${JSON.stringify(filteredLogs, null, 2)}
+
+==== Relevant Context From Last User Message ====
+${relevantContextFromLastUserMessage || ''}`;
+
+    const apiUrl = 'http://localhost:8003';
+
+    try {
+      if (addBreadcrumb) {
+        addBreadcrumb('[supervisorAgent] outgoing chatbot request', { apiUrl, question, sessionId });
+      }
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId,
+          question,
+        }),
+      });
+
+      if (!res.ok) {
+        console.warn('Chatbot API returned an error status:', res.status, res.statusText);
+        return { error: 'Something went wrong.' };
+      }
+
+      // Try to parse JSON response; fall back to plain text if necessary.
+      let parsed: any = null;
+      let finalText: string | null = null;
+      try {
+        parsed = await res.json();
+      } catch (e) {
+        // not JSON
+      }
+
+      if (parsed) {
+        // Prefer commonly used fields if available.
+        finalText =
+          parsed.answer ??
+          (typeof parsed === 'string' ? parsed : null);
+
+        // Persist returned sessionId if the chatbot provided one.
+        const returnedSessionId =
+          parsed.session_id ?? null;
+        if (returnedSessionId) {
+          ctx.chatbotSessionId = returnedSessionId;
+          if (addBreadcrumb) {
+            addBreadcrumb('[supervisorAgent] stored chatbot sessionId', { sessionId: returnedSessionId });
+          }
+        }
+      }
+
+      if (!finalText) {
+        // If we didn't get a useful value from JSON, try reading plain text.
+        const text = await res.text();
+        finalText = text && text.length > 0 ? text : null;
+      }
+
+      if (!finalText) {
+        console.warn('Chatbot API returned no usable response.');
+        return { error: 'Something went wrong.' };
+      }
+
+      if (addBreadcrumb) {
+        addBreadcrumb('[supervisorAgent] chatbot response', { responsePreview: finalText.slice(0, 100) });
+      }
+
+      return { nextResponse: finalText as string };
+    } catch (err) {
+      console.error('Error calling chatbot API:', err);
       return { error: 'Something went wrong.' };
     }
-
-    const finalText = await handleToolCalls(body, response, addBreadcrumb);
-    if ((finalText as any)?.error) {
-      return { error: 'Something went wrong.' };
-    }
-
-    return { nextResponse: finalText as string };
   },
 });
-  
