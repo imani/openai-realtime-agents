@@ -35,4 +35,4 @@ COPY --from=build_image /app/package.json ./package.json
 
 EXPOSE 3000
 
-CMD sh -c "npm run dev"
+CMD sh -c "npm run start"
