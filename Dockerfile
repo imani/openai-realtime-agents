@@ -32,8 +32,6 @@ COPY --from=build_image /app/public ./public
 COPY --from=build_image /app/.next ./.next
 COPY --from=build_image /app/node_modules ./node_modules
 COPY --from=build_image /app/package.json ./package.json
-COPY --from=build_image /app/next.config.js ./next.config.js
-COPY --from=build_image /app/tsconfig.json ./tsconfig.json
 
 EXPOSE 3000
 
