@@ -1,0 +1,21 @@
+diff --git a/node_modules/@openai/agents-core/dist/shims/shims-browser.mjs b/node_modules/@openai/agents-core/dist/shims/shims-browser.mjs
+index ff4538c..eb26e9b 100644
+--- a/node_modules/@openai/agents-core/dist/shims/shims-browser.mjs
++++ b/node_modules/@openai/agents-core/dist/shims/shims-browser.mjs
+@@ -28,7 +28,15 @@ export class BrowserEventEmitter {
+     }
+ }
+ export { BrowserEventEmitter as RuntimeEventEmitter };
+-export const randomUUID = crypto.randomUUID.bind(crypto);
++export const randomUUID =
++  globalThis.crypto?.randomUUID?.bind(globalThis.crypto) ??
++  (() => {
++    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
++      const r = (Math.random() * 16) | 0;
++      const v = c === "x" ? r : (r & 0x3) | 0x8;
++      return v.toString(16);
++    });
++  });
+ export const Readable = class Readable {
+     constructor() { }
+     pipeTo(_destination, _options) { }
