@@ -288,7 +288,7 @@ export const getNextResponseFromSupervisor = tool({
     // external chatbot API at http://localhost:8003 using the required schema.
     const question = relevantContextFromLastUserMessage;
 
-    const apiUrl = 'http://192.168.10.11:8003';
+    const apiUrl = 'https://apigateway.fadaktrains.com/api/pythonservices/chatbot/ask';
 
     try {
       if (addBreadcrumb) {
