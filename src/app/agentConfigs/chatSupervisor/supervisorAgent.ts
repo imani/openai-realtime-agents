@@ -1,4 +1,4 @@
-import { RealtimeItem, tool } from '@openai/agents/realtime';
+import { tool } from '@openai/agents/realtime';
 
 
 import {
@@ -182,8 +182,8 @@ function getToolResponse(fName: string) {
 /**
  * Iteratively handles function calls returned by the Responses API until the
  * supervisor produces a final textual answer. Returns that answer as a string.
- */
-async function handleToolCalls(
+*/
+export async function handleToolCalls(
   body: any,
   response: any,
   addBreadcrumb?: (title: string, data?: any) => void,
@@ -278,8 +278,6 @@ export const getNextResponseFromSupervisor = tool({
       | ((title: string, data?: any) => void)
       | undefined;
 
-    const history: RealtimeItem[] = (details?.context as any)?.history ?? [];
-    const filteredLogs = history.filter((log) => log.type === 'message');
 
     // Use details.context to persist the chatbot sessionId across calls when available.
     const ctx = (details?.context as any) ?? {};
@@ -307,8 +305,7 @@ export const getNextResponseFromSupervisor = tool({
           question,
         }),
       });
-
-      print
+      
       if (!res.ok) {
         console.warn('Chatbot API returned an error status:', res.status, res.statusText);
         return { error: 'Something went wrong.' };
@@ -319,7 +316,7 @@ export const getNextResponseFromSupervisor = tool({
       let finalText: string | null = null;
       try {
         parsed = await res.json();
-      } catch (e) {
+      } catch {
         // not JSON
       }
 
