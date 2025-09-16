@@ -288,16 +288,9 @@ export const getNextResponseFromSupervisor = tool({
     // Build a single "question" payload that includes conversation history and the
     // relevant context from the last user message. This string will be sent to the
     // external chatbot API at http://localhost:8003 using the required schema.
-    const question = `==== Supervisor Instructions ====
-${supervisorAgentInstructions}
+    const question = relevantContextFromLastUserMessage;
 
-==== Conversation History ====
-${JSON.stringify(filteredLogs, null, 2)}
-
-==== Relevant Context From Last User Message ====
-${relevantContextFromLastUserMessage || ''}`;
-
-    const apiUrl = 'http://localhost:8003';
+    const apiUrl = 'http://192.168.10.11:8003';
 
     try {
       if (addBreadcrumb) {
@@ -315,6 +308,7 @@ ${relevantContextFromLastUserMessage || ''}`;
         }),
       });
 
+      print
       if (!res.ok) {
         console.warn('Chatbot API returned an error status:', res.status, res.statusText);
         return { error: 'Something went wrong.' };
