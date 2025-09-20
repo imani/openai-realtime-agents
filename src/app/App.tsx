@@ -262,18 +262,17 @@ function App() {
     // `session.update` event.
     const turnDetection = isPTTActive
       ? null
-      : {
-          type: 'server_vad',
-          threshold: 0.9,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 500,
-          create_response: true,
-        };
+      :{
+      "type": "semantic_vad",
+      "eagerness": "auto", // optional
+      "create_response": true, // only in conversation mode
+      "interrupt_response": true, // only in conversation mode
+    };
 
     sendEvent({
       type: 'session.update',
       session: {
-        turn_detection: 'semantic_vad',
+        turn_detection: turnDetection,
       },
     });
 
