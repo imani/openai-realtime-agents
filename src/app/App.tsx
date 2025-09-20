@@ -264,7 +264,7 @@ function App() {
       ? null
       :{
       "type": "semantic_vad",
-      "eagerness": "auto", // optional
+      "eagerness": "normal", // optional
       "create_response": true, // only in conversation mode
       "interrupt_response": true, // only in conversation mode
     };
