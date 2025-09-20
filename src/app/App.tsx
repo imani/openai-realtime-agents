@@ -273,7 +273,7 @@ function App() {
     sendEvent({
       type: 'session.update',
       session: {
-        turn_detection: turnDetection,
+        turn_detection: 'semantic_vad',
       },
     });
 
