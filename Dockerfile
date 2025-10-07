@@ -1,10 +1,6 @@
 # -------- Build Stage --------
 FROM node:22.14.0-alpine AS build_image
 
-RUN echo "http://mirrors.pardisco.co/alpine/v3.19/main/" > /etc/apk/repositories \
-    && echo "http://mirrors.pardisco.co/alpine/v3.19/community/" >> /etc/apk/repositories \
-    && apk update && apk upgrade && apk add --no-cache libc6-compat
-
 WORKDIR /app
 
 # Set faster and local registry for NPM
