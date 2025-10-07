@@ -4,7 +4,7 @@ FROM node:22.14.0-alpine AS build_image
 WORKDIR /app
 
 # Set faster and local registry for NPM
-RUN npm config set registry https://mirror-npm.runflare.com \
+RUN npm config set registry https://verdaccio.fadak-tech.ir \
   && npm config set legacy-peer-deps true
 
 COPY package.json package-lock.json ./
