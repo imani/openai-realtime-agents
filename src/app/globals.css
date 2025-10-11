@@ -22,11 +22,14 @@ body {
 }
 
 html,
-body {
-  height: 100%;
-  overflow: hidden;
-}
-
+body,
 #__next {
   height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.h-screen {
+  height: 100vh;
+  height: 100dvh;
 }

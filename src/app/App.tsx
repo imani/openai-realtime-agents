@@ -433,22 +433,6 @@ function App() {
     };
   }, [sessionStatus]);
 
-  // Prevent body scroll on mobile
-  useEffect(() => {
-    if (isMobile) {
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-    }
-
-    return () => {
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-    };
-  }, [isMobile]);
-
   useEffect(() => {
     if (sessionStatus === "CONNECTED") {
       updateSession();
@@ -503,7 +487,7 @@ function App() {
 
       {/* Mobile Main content - FIXED HEIGHT */}
       {isMobile && (
-        <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 min-h-0 overflow-hidden">
             <MobileTranscript
               sessionStatus={sessionStatus}

@@ -71,8 +71,8 @@ function MobileTranscript({
   const isConnecting = sessionStatus === "CONNECTING";
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl shadow-sm overflow-hidden">
-      {/* Header for mobile - FIXED HEIGHT */}
+    <div className="flex flex-col h-full bg-white rounded-xl shadow-sm">
+      {/* Header for mobile */}
       <div className="flex-shrink-0 flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200 rounded-t-xl">
         <h2 className="text-lg font-semibold text-gray-800">Conversation</h2>
 
@@ -237,8 +237,7 @@ function MobileTranscript({
           })}
       </div>
 
-      {/* Input area - only show when connected - FIXED HEIGHT */}
-
+      {/* Input area - only show when connected */}
       <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white rounded-b-xl">
         <div className="flex gap-2">
           <input
