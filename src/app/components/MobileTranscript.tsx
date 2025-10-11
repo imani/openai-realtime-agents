@@ -71,9 +71,9 @@ function MobileTranscript({
   const isConnecting = sessionStatus === "CONNECTING";
 
   return (
-    <div className="flex flex-col flex-1 bg-white min-h-0 rounded-xl shadow-sm">
+    <div className="flex flex-col flex-1 bg-white min-h-0 rounded-xl shadow-sm overflow-hidden">
       {/* Header for mobile */}
-      <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200 rounded-t-xl">
+      <div className="flex-shrink-0 flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200 rounded-t-xl">
         <h2 className="text-lg font-semibold text-gray-800">Conversation</h2>
 
         <div className="flex items-center gap-2">
@@ -87,7 +87,7 @@ function MobileTranscript({
                   : "bg-red-500"
               }`}
             />
-            <span className="text-sm font-medium">
+            <span className="text-sm font-medium hidden sm:inline">
               {isConnected
                 ? "Connected"
                 : isConnecting
@@ -99,7 +99,7 @@ function MobileTranscript({
           <button
             onClick={onToggleConnection}
             disabled={isConnecting}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               isConnected
                 ? "bg-red-100 text-red-700 hover:bg-red-200"
                 : "bg-green-100 text-green-700 hover:bg-green-200"
@@ -110,10 +110,10 @@ function MobileTranscript({
         </div>
       </div>
 
-      {/* Transcript Content */}
+      {/* Transcript Content - FIXED HEIGHT */}
       <div
         ref={transcriptRef}
-        className="overflow-auto p-4 flex flex-col gap-y-4 h-full"
+        className="flex-1 overflow-auto p-4 flex flex-col gap-y-4 min-h-0"
       >
         {[...transcriptItems]
           .sort((a, b) => a.createdAtMs - b.createdAtMs)
@@ -139,7 +139,7 @@ function MobileTranscript({
               const containerClasses = `flex justify-end flex-col ${
                 isUser ? "items-end" : "items-start"
               }`;
-              const bubbleBase = `max-w-full md:max-w-lg p-3 ${
+              const bubbleBase = `max-w-full p-3 ${
                 isUser
                   ? "bg-blue-600 text-white rounded-l-xl rounded-tr-xl"
                   : "bg-gray-100 text-black rounded-r-xl rounded-tl-xl"
@@ -155,7 +155,7 @@ function MobileTranscript({
 
               return (
                 <div key={itemId} className={containerClasses}>
-                  <div className="w-full max-w-full md:max-w-lg">
+                  <div className="w-full max-w-full">
                     <div
                       className={`${bubbleBase} ${
                         guardrailResult ? "" : "rounded-b-xl"
@@ -239,7 +239,7 @@ function MobileTranscript({
 
       {/* Input area - only show when connected */}
       {canSend && (
-        <div className="p-4 border-t border-gray-200 bg-white rounded-b-xl">
+        <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white rounded-b-xl">
           <div className="flex gap-2">
             <input
               ref={inputRef}

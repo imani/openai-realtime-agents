@@ -401,10 +401,26 @@ function App() {
     };
   }, [sessionStatus]);
 
+  // Prevent body scroll on mobile
+  useEffect(() => {
+    if (isMobile) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, [isMobile]);
+
   return (
-    <div className="text-base flex flex-col h-screen bg-gray-100 text-gray-800 relative">
+    <div className="text-base flex flex-col h-screen bg-gray-100 text-gray-800 relative overflow-hidden">
       {/* Header */}
-      <div className="p-4 md:p-5 text-lg font-semibold flex justify-between items-center bg-white shadow-sm">
+      <div className="flex-shrink-0 p-4 md:p-5 text-lg font-semibold flex justify-between items-center bg-white shadow-sm">
         <div
           className="flex items-center cursor-pointer"
           onClick={() => window.location.reload()}
@@ -447,21 +463,25 @@ function App() {
         </div>
       )}
 
-      {/* Mobile Main content */}
+      {/* Mobile Main content - FIXED HEIGHT */}
       {isMobile && (
-        <div className="flex flex-1 flex-col md:flex-row gap-2 px-2 overflow-hidden relative">
-          <MobileTranscript
-            sessionStatus={sessionStatus}
-            onToggleConnection={onToggleConnection}
-            userText={userText}
-            setUserText={setUserText}
-            onSendMessage={handleSendTextMessage}
-            downloadRecording={downloadRecording}
-            canSend={sessionStatus === "CONNECTED"}
-          />
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0">
+            <MobileTranscript
+              sessionStatus={sessionStatus}
+              onToggleConnection={onToggleConnection}
+              userText={userText}
+              setUserText={setUserText}
+              onSendMessage={handleSendTextMessage}
+              downloadRecording={downloadRecording}
+              canSend={sessionStatus === "CONNECTED"}
+            />
+          </div>
 
-          {(!isMobile || isEventsPaneExpanded) && (
-            <Events isExpanded={isEventsPaneExpanded} isMobile={isMobile} />
+          {isEventsPaneExpanded && (
+            <div className="absolute inset-0 z-50 bg-white">
+              <Events isExpanded={isEventsPaneExpanded} isMobile={isMobile} />
+            </div>
           )}
         </div>
       )}
