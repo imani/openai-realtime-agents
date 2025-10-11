@@ -17,6 +17,230 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  font-family: dana, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.farsi-numerals {
+  font-family: danaFarsiNum, dana, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+    "Helvetica Neue", sans-serif;
+}
+
+html,
+body,
+#__next {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.h-screen {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/**
+*
+*	Name:			DANA Fonts
+*	Version:			3.0
+*	Author:			Moslem Ebrahimi (moslemebrahimi.com)
+*	Created on:		nov 12, 2021
+*	Updated on:		nov 12, 2021
+*	Website:			http://fontiran.com
+*	Copyright:		Commercial/Proprietary Software
+--------------------------------------------------------------------------------------
+فونت دانا یک نرم افزار مالکیتی محسوب می شود. جهت آگاهی از قوانین استفاده از این فونت ها لطفا به وب سایت (فونت ایران دات کام) مراجعه نمایید
+--------------------------------------------------------------------------------------
+DANA fonts are considered a proprietary software. To gain information about the laws regarding the use of these fonts, please visit www.fontiran.com
+--------------------------------------------------------------------------------------
+This set of fonts are used in this project under the license: (.....)
+------------------------------------------------------------------------------------- fonts/-
+*
+**/
+
+/*Add Dana Font Family*/
+@font-face {
+  font-family: dana;
+  font-style: normal;
+  font-weight: 10;
+  src: url("../../public/fonts/Dana/DanaFamily/Dana-Hairline.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: dana;
+  font-style: normal;
+  font-weight: 100;
+  src: url("../../public/fonts/Dana/DanaFamily/Dana-Thin.woff2") format("woff2");
+}
+@font-face {
+  font-family: dana;
+  font-style: normal;
+  font-weight: 200;
+  src: url("../../public/fonts/Dana/DanaFamily/Dana-UltraLight.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: dana;
+  font-style: normal;
+  font-weight: 300;
+  src: url("../../public/fonts/Dana/DanaFamily/Dana-Light.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: dana;
+  font-style: normal;
+  font-weight: 500;
+  src: url("../../public/fonts/Dana/DanaFamily/Dana-Medium.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: dana;
+  font-style: normal;
+  font-weight: 600;
+  src: url("../../public/fonts/Dana/DanaFamily/Dana-DemiBold.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: dana;
+  font-style: normal;
+  font-weight: 800;
+  src: url("../../public/fonts/Dana/DanaFamily/Dana-ExtraBold.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: dana;
+  font-style: normal;
+  font-weight: 900;
+  src: url("../../public/fonts/Dana/DanaFamily/Dana-Black.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: dana;
+  font-style: normal;
+  font-weight: 930;
+  src: url("../../public/fonts/Dana/DanaFamily/Dana-ExtraBlack.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: dana;
+  font-style: normal;
+  font-weight: 960;
+  src: url("../../public/fonts/Dana/DanaFamily/Dana-Heavy.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: dana;
+  font-style: normal;
+  font-weight: 990;
+  src: url("../../public/fonts/Dana/DanaFamily/Dana-fat.woff2") format("woff2");
+}
+@font-face {
+  font-family: dana;
+  font-style: normal;
+  font-weight: bold;
+  src: url("../../public/fonts/Dana/DanaFamily/Dana-Bold.woff2") format("woff2");
+}
+@font-face {
+  font-family: dana;
+  font-style: normal;
+  font-weight: normal;
+  src: url("../../public/fonts/Dana/DanaFamily/Dana-Regular.woff2")
+    format("woff2");
+}
+
+/*Dana farsi Numerals*/
+@font-face {
+  font-family: danaFarsiNum;
+  font-style: normal;
+  font-weight: 10;
+  src: url("../../public/fonts/Dana/FarsiNumerals/DanaFaNum-Hairline.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: danaFarsiNum;
+  font-style: normal;
+  font-weight: 100;
+  src: url("../../public/fonts/Dana/FarsiNumerals/DanaFaNum-Thin.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: danaFarsiNum;
+  font-style: normal;
+  font-weight: 200;
+  src: url("../../public/fonts/Dana/FarsiNumerals/DanaFaNum-UltraLight.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: danaFarsiNum;
+  font-style: normal;
+  font-weight: 300;
+  src: url("../../public/fonts/Dana/FarsiNumerals/DanaFaNum-Light.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: danaFarsiNum;
+  font-style: normal;
+  font-weight: 500;
+  src: url("../../public/fonts/Dana/FarsiNumerals/DanaFaNum-Medium.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: danaFarsiNum;
+  font-style: normal;
+  font-weight: 600;
+  src: url("../../public/fonts/Dana/FarsiNumerals/DanaFaNum-DemiBold.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: danaFarsiNum;
+  font-style: normal;
+  font-weight: 800;
+  src: url("../../public/fonts/Dana/FarsiNumerals/DanaFaNum-ExtraBold.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: danaFarsiNum;
+  font-style: normal;
+  font-weight: 900;
+  src: url("../../public/fonts/Dana/FarsiNumerals/DanaFaNum-Black.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: danaFarsiNum;
+  font-style: normal;
+  font-weight: 930;
+  src: url("../../public/fonts/Dana/FarsiNumerals/DanaFaNum-ExtraBlack.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: danaFarsiNum;
+  font-style: normal;
+  font-weight: 960;
+  src: url("../../public/fonts/Dana/FarsiNumerals/DanaFaNum-Heavy.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: danaFarsiNum;
+  font-style: normal;
+  font-weight: 990;
+  src: url("../../public/fonts/Dana/FarsiNumerals/DanaFaNum-fat.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: danaFarsiNum;
+  font-style: normal;
+  font-weight: bold;
+  src: url("../../public/fonts/Dana/FarsiNumerals/DanaFaNum-Bold.woff2")
+    format("woff2");
+}
+@font-face {
+  font-family: danaFarsiNum;
+  font-style: normal;
+  font-weight: normal;
+  src: url("../../public/fonts/Dana/FarsiNumerals/DanaFaNum-Regular.woff2")
+    format("woff2");
 }
