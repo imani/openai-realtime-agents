@@ -100,6 +100,8 @@ function App() {
       return stored ? stored === "true" : true;
     }
   );
+  const [isAutoDetectSpeaking, setIsAutoDetectSpeaking] =
+    useState<boolean>(false);
 
   // Initialize the recording hook.
   const { startRecording, stopRecording, downloadRecording } =
@@ -169,6 +171,35 @@ function App() {
       updateSession();
     }
   }, [isPTTActive]);
+
+  useEffect(() => {
+    if (sessionStatus === "CONNECTED" && !isPTTActive) {
+      // Simulate VAD detection - you'll need to replace this with actual SDK events
+      // This is a placeholder - check your SDK documentation for actual VAD events
+      const handleVoiceActivity = (event: any) => {
+        // This would be based on your SDK's actual VAD events
+        // For example: event.detail.isSpeaking or event.isVoiceActive
+        if (event.type === "voice_activity_start") {
+          setIsAutoDetectSpeaking(true);
+        } else if (event.type === "voice_activity_end") {
+          setIsAutoDetectSpeaking(false);
+        }
+      };
+
+      // Add event listeners for VAD
+      // Replace these with your actual SDK event listeners
+      window.addEventListener("voice_activity_start", handleVoiceActivity);
+      window.addEventListener("voice_activity_end", handleVoiceActivity);
+
+      return () => {
+        window.removeEventListener("voice_activity_start", handleVoiceActivity);
+        window.removeEventListener("voice_activity_end", handleVoiceActivity);
+        setIsAutoDetectSpeaking(false);
+      };
+    } else {
+      setIsAutoDetectSpeaking(false);
+    }
+  }, [sessionStatus, isPTTActive]);
 
   const fetchEphemeralKey = async (): Promise<string | null> => {
     logClientEvent({ url: "/session" }, "fetch_session_token_request");
@@ -255,16 +286,17 @@ function App() {
   };
 
   const updateSession = (shouldTriggerResponse: boolean = false) => {
-    // Reflect Push-to-Talk UI state by (de)activating server VAD on the
-    // backend. The Realtime SDK supports live session updates via the
-    // `session.update` event.
+    // When PTT is inactive (unchecked), enable server VAD for automatic speech detection
+    // When PTT is active (checked), disable server VAD and rely on manual PTT button
     const turnDetection = isPTTActive
       ? null
       : {
-          type: "semantic_vad",
-          eagerness: "normal", // optional
-          create_response: true, // only in conversation mode
-          interrupt_response: true, // only in conversation mode
+          type: "server_vad",
+          threshold: 0.5,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 500,
+          create_response: true,
+          interrupt_response: true,
         };
 
     sendEvent({
@@ -417,6 +449,12 @@ function App() {
     };
   }, [isMobile]);
 
+  useEffect(() => {
+    if (sessionStatus === "CONNECTED") {
+      updateSession();
+    }
+  }, [isPTTActive, sessionStatus]);
+
   return (
     <div className="text-base flex flex-col h-screen bg-gray-100 text-gray-800 relative overflow-hidden">
       {/* Header */}
@@ -495,6 +533,7 @@ function App() {
         handleTalkButtonDown={handleTalkButtonDown}
         handleTalkButtonUp={handleTalkButtonUp}
         isMobile={isMobile}
+        isAutoDetectSpeaking={isAutoDetectSpeaking}
       />
     </div>
   );
