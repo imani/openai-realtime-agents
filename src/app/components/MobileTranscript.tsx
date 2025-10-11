@@ -6,7 +6,7 @@ import { SessionStatus, TranscriptItem } from "@/app/types";
 import { useTranscript } from "@/app/contexts/TranscriptContext";
 import { GuardrailChip } from "./GuardrailChip";
 
-export interface TranscriptProps {
+export interface MobileTranscriptProps {
   sessionStatus: SessionStatus;
   onToggleConnection: () => void;
   userText: string;
@@ -16,7 +16,7 @@ export interface TranscriptProps {
   downloadRecording: () => void;
 }
 
-function Transcript({
+function MobileTranscript({
   sessionStatus,
   onToggleConnection,
   userText,
@@ -24,7 +24,7 @@ function Transcript({
   onSendMessage,
   canSend,
   downloadRecording,
-}: TranscriptProps) {
+}: MobileTranscriptProps) {
   const { transcriptItems, toggleTranscriptItemExpand } = useTranscript();
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const [prevLogs, setPrevLogs] = useState<TranscriptItem[]>([]);
@@ -73,44 +73,42 @@ function Transcript({
   return (
     <div className="flex flex-col flex-1 bg-white min-h-0 rounded-xl shadow-sm">
       {/* Header for mobile */}
-      {
-        <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200 rounded-t-xl">
-          <h2 className="text-lg font-semibold text-gray-800">Conversation</h2>
+      <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200 rounded-t-xl">
+        <h2 className="text-lg font-semibold text-gray-800">Conversation</h2>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div
-                className={`w-3 h-3 rounded-full ${
-                  isConnected
-                    ? "bg-green-500"
-                    : isConnecting
-                    ? "bg-yellow-500 animate-pulse"
-                    : "bg-red-500"
-                }`}
-              />
-              <span className="text-sm font-medium">
-                {isConnected
-                  ? "Connected"
-                  : isConnecting
-                  ? "Connecting..."
-                  : "Disconnected"}
-              </span>
-            </div>
-
-            <button
-              onClick={onToggleConnection}
-              disabled={isConnecting}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <div
+              className={`w-3 h-3 rounded-full ${
                 isConnected
-                  ? "bg-red-100 text-red-700 hover:bg-red-200"
-                  : "bg-green-100 text-green-700 hover:bg-green-200"
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {isConnected ? "Disconnect" : "Connect"}
-            </button>
+                  ? "bg-green-500"
+                  : isConnecting
+                  ? "bg-yellow-500 animate-pulse"
+                  : "bg-red-500"
+              }`}
+            />
+            <span className="text-sm font-medium">
+              {isConnected
+                ? "Connected"
+                : isConnecting
+                ? "Connecting..."
+                : "Disconnected"}
+            </span>
           </div>
+
+          <button
+            onClick={onToggleConnection}
+            disabled={isConnecting}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              isConnected
+                ? "bg-red-100 text-red-700 hover:bg-red-200"
+                : "bg-green-100 text-green-700 hover:bg-green-200"
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {isConnected ? "Disconnect" : "Connect"}
+          </button>
         </div>
-      }
+      </div>
 
       {/* Transcript Content */}
       <div
@@ -290,4 +288,4 @@ function Transcript({
   );
 }
 
-export default Transcript;
+export default MobileTranscript;

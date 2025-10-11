@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import Image from "next/image";
 
 // UI components
-import Transcript from "./components/Transcript";
+import MobileTranscript from "./components/MobileTranscript";
 import Events from "./components/Events";
 import BottomToolbar from "./components/BottomToolbar";
 
@@ -37,6 +37,8 @@ const sdkScenarioMap: Record<string, RealtimeAgent[]> = {
 import useAudioDownload from "./hooks/useAudioDownload";
 import { useHandleSessionHistory } from "./hooks/useHandleSessionHistory";
 import { useMediaQuery } from "./hooks/useMediaQuery";
+import DesktopTranscript from "./components/DesktopTranscript";
+import { ArrowLeftIcon, ArrowRightIcon } from "@radix-ui/react-icons";
 
 function App() {
   const searchParams = useSearchParams()!;
@@ -422,30 +424,57 @@ function App() {
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex flex-1 flex-col md:flex-row gap-2 px-2 overflow-hidden relative">
-        <Transcript
-          sessionStatus={sessionStatus}
-          onToggleConnection={onToggleConnection}
-          userText={userText}
-          setUserText={setUserText}
-          onSendMessage={handleSendTextMessage}
-          downloadRecording={downloadRecording}
-          canSend={sessionStatus === "CONNECTED"}
-        />
+      {/* Desktop Main content */}
+      {!isMobile && (
+        <div className="flex flex-1 flex-col md:flex-row gap-2 px-2 overflow-hidden relative">
+          <DesktopTranscript
+            userText={userText}
+            setUserText={setUserText}
+            onSendMessage={handleSendTextMessage}
+            downloadRecording={downloadRecording}
+            canSend={sessionStatus === "CONNECTED"}
+          />
+          <button
+            onClick={() => setIsEventsPaneExpanded(!isEventsPaneExpanded)}
+            className="p-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+            title={isEventsPaneExpanded ? "Hide Logs" : "Show Logs"}
+          >
+            {isEventsPaneExpanded ? <ArrowRightIcon /> : <ArrowLeftIcon />}
+          </button>
+          {isEventsPaneExpanded && (
+            <Events isExpanded={isEventsPaneExpanded} isMobile={isMobile} />
+          )}
+        </div>
+      )}
 
-        {(!isMobile || isEventsPaneExpanded) && (
-          <Events isExpanded={isEventsPaneExpanded} isMobile={isMobile} />
-        )}
-      </div>
+      {/* Mobile Main content */}
+      {isMobile && (
+        <div className="flex flex-1 flex-col md:flex-row gap-2 px-2 overflow-hidden relative">
+          <MobileTranscript
+            sessionStatus={sessionStatus}
+            onToggleConnection={onToggleConnection}
+            userText={userText}
+            setUserText={setUserText}
+            onSendMessage={handleSendTextMessage}
+            downloadRecording={downloadRecording}
+            canSend={sessionStatus === "CONNECTED"}
+          />
+
+          {(!isMobile || isEventsPaneExpanded) && (
+            <Events isExpanded={isEventsPaneExpanded} isMobile={isMobile} />
+          )}
+        </div>
+      )}
 
       <BottomToolbar
         sessionStatus={sessionStatus}
+        onToggleConnection={onToggleConnection}
         isPTTActive={isPTTActive}
         setIsPTTActive={setIsPTTActive}
         isPTTUserSpeaking={isPTTUserSpeaking}
         handleTalkButtonDown={handleTalkButtonDown}
         handleTalkButtonUp={handleTalkButtonUp}
+        isMobile={isMobile}
       />
     </div>
   );

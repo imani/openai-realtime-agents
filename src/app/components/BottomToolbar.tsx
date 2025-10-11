@@ -3,26 +3,66 @@ import { SessionStatus } from "@/app/types";
 
 interface BottomToolbarProps {
   sessionStatus: SessionStatus;
+  onToggleConnection: () => void;
   isPTTActive: boolean;
   setIsPTTActive: (val: boolean) => void;
   isPTTUserSpeaking: boolean;
   handleTalkButtonDown: () => void;
   handleTalkButtonUp: () => void;
+  isMobile: boolean;
 }
 
 function BottomToolbar({
   sessionStatus,
+  onToggleConnection,
   isPTTActive,
   setIsPTTActive,
   isPTTUserSpeaking,
   handleTalkButtonDown,
   handleTalkButtonUp,
+  isMobile,
 }: BottomToolbarProps) {
   const isConnected = sessionStatus === "CONNECTED";
+  const isConnecting = sessionStatus === "CONNECTING";
 
   return (
     <div className="p-4 bg-white border-t border-gray-200 shadow-lg">
       <div className="flex flex-col md:flex-column items-center justify-evenly gap-4">
+        {/* Connection Section */}
+        {!isMobile && (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  isConnected
+                    ? "bg-green-500"
+                    : isConnecting
+                    ? "bg-yellow-500 animate-pulse"
+                    : "bg-red-500"
+                }`}
+              />
+              <span className="text-sm font-medium">
+                {isConnected
+                  ? "Connected"
+                  : isConnecting
+                  ? "Connecting..."
+                  : "Disconnected"}
+              </span>
+            </div>
+
+            <button
+              onClick={onToggleConnection}
+              disabled={isConnecting}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isConnected
+                  ? "bg-red-100 text-red-700 hover:bg-red-200"
+                  : "bg-green-100 text-green-700 hover:bg-green-200"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isConnected ? "Disconnect" : "Connect"}
+            </button>
+          </div>
+        )}
         {/* Push-to-Talk Section */}
         <div className="flex flex-col items-center gap-3">
           <div className="flex items-center gap-2">
