@@ -2,7 +2,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
-import Image from "next/image";
 
 // UI components
 import MobileTranscript from "./components/MobileTranscript";
@@ -39,13 +38,11 @@ import { useHandleSessionHistory } from "./hooks/useHandleSessionHistory";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import DesktopTranscript from "./components/DesktopTranscript";
 import { ArrowLeftIcon, ArrowRightIcon } from "@radix-ui/react-icons";
+import { FadakLogo } from "./components/logo";
 
 function App() {
   const searchParams = useSearchParams()!;
   const isMobile = useMediaQuery("(max-width: 768px)");
-
-  // Agents SDK doesn't currently support codec selection so it is now forced
-  // via global codecPatch at module load
 
   const { addTranscriptMessage, addTranscriptBreadcrumb } = useTranscript();
   const { logClientEvent, logServerEvent } = useEvent();
@@ -56,7 +53,6 @@ function App() {
   >(null);
 
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
-  // Ref to identify whether the latest agent switch came from an automatic handoff
   const handoffTriggeredRef = useRef(false);
 
   const sdkAudioElement = React.useMemo(() => {
@@ -68,7 +64,6 @@ function App() {
     return el;
   }, []);
 
-  // Attach SDK audio element once it exists (after first render in browser)
   useEffect(() => {
     if (sdkAudioElement && !audioElementRef.current) {
       audioElementRef.current = sdkAudioElement;
@@ -103,7 +98,6 @@ function App() {
   const [isAutoDetectSpeaking, setIsAutoDetectSpeaking] =
     useState<boolean>(false);
 
-  // Initialize the recording hook.
   const { startRecording, stopRecording, downloadRecording } =
     useAudioDownload();
 
@@ -118,7 +112,6 @@ function App() {
 
   useHandleSessionHistory();
 
-  // Auto-hide events pane on mobile when screen size changes
   useEffect(() => {
     if (isMobile) {
       setIsEventsPaneExpanded(false);
@@ -161,7 +154,6 @@ function App() {
       );
       addTranscriptBreadcrumb(`Agent: ${selectedAgentName}`, currentAgent);
       updateSession(!handoffTriggeredRef.current);
-      // Reset flag after handling so subsequent effects behave normally
       handoffTriggeredRef.current = false;
     }
   }, [selectedAgentConfigSet, selectedAgentName, sessionStatus]);
@@ -174,11 +166,7 @@ function App() {
 
   useEffect(() => {
     if (sessionStatus === "CONNECTED" && !isPTTActive) {
-      // Simulate VAD detection - you'll need to replace this with actual SDK events
-      // This is a placeholder - check your SDK documentation for actual VAD events
       const handleVoiceActivity = (event: any) => {
-        // This would be based on your SDK's actual VAD events
-        // For example: event.detail.isSpeaking or event.isVoiceActive
         if (event.type === "voice_activity_start") {
           setIsAutoDetectSpeaking(true);
         } else if (event.type === "voice_activity_end") {
@@ -186,8 +174,6 @@ function App() {
         }
       };
 
-      // Add event listeners for VAD
-      // Replace these with your actual SDK event listeners
       window.addEventListener("voice_activity_start", handleVoiceActivity);
       window.addEventListener("voice_activity_end", handleVoiceActivity);
 
@@ -227,7 +213,6 @@ function App() {
         const EPHEMERAL_KEY = await fetchEphemeralKey();
         if (!EPHEMERAL_KEY) return;
 
-        // Ensure the selectedAgentName is first so that it becomes the root
         const reorderedAgents = [...sdkScenarioMap[agentSetKey]];
         const idx = reorderedAgents.findIndex(
           (a) => a.name === selectedAgentName
@@ -286,8 +271,6 @@ function App() {
   };
 
   const updateSession = (shouldTriggerResponse: boolean = false) => {
-    // When PTT is inactive (unchecked), enable server VAD for automatic speech detection
-    // When PTT is active (checked), disable server VAD and rely on manual PTT button
     const turnDetection = isPTTActive
       ? null
       : {
@@ -306,7 +289,6 @@ function App() {
       },
     });
 
-    // Send an initial 'hi' message to trigger the agent to greet the user
     if (shouldTriggerResponse) {
       sendSimulatedUserMessage("hi");
     }
@@ -332,8 +314,6 @@ function App() {
 
     setIsPTTUserSpeaking(true);
     sendClientEvent({ type: "input_audio_buffer.clear" }, "clear PTT buffer");
-
-    // No placeholder; we'll rely on server transcript once ready.
   };
 
   const handleTalkButtonUp = () => {
@@ -393,14 +373,11 @@ function App() {
           console.warn("Autoplay may be blocked by browser:", err);
         });
       } else {
-        // Mute and pause to avoid brief audio blips before pause takes effect.
         audioElementRef.current.muted = true;
         audioElementRef.current.pause();
       }
     }
 
-    // Toggle server-side audio stream mute so bandwidth is saved when the
-    // user disables playback.
     try {
       mute(!isAudioPlaybackEnabled);
     } catch (err) {
@@ -408,8 +385,6 @@ function App() {
     }
   }, [isAudioPlaybackEnabled]);
 
-  // Ensure mute state is propagated to transport right after we connect or
-  // whenever the SDK client reference becomes available.
   useEffect(() => {
     if (sessionStatus === "CONNECTED") {
       try {
@@ -422,12 +397,10 @@ function App() {
 
   useEffect(() => {
     if (sessionStatus === "CONNECTED" && audioElementRef.current?.srcObject) {
-      // The remote audio stream from the audio element.
       const remoteStream = audioElementRef.current.srcObject as MediaStream;
       startRecording(remoteStream);
     }
 
-    // Clean up on unmount or when sessionStatus is updated.
     return () => {
       stopRecording();
     };
@@ -440,24 +413,21 @@ function App() {
   }, [isPTTActive, sessionStatus]);
 
   return (
-    <div className="text-base flex flex-col h-screen bg-gray-100 text-gray-800 relative overflow-hidden">
+    <div
+      dir="rtl"
+      className="text-base flex flex-col h-screen bg-gray-100 text-gray-800 relative overflow-hidden"
+    >
       {/* Header */}
       <div className="flex-shrink-0 p-4 md:p-5 text-lg font-semibold flex justify-between items-center bg-white shadow-sm">
         <div
           className="flex items-center cursor-pointer"
           onClick={() => window.location.reload()}
         >
-          <div className="mr-2">
-            <Image
-              src="/openai-logomark.svg"
-              alt="OpenAI Logo"
-              width={20}
-              height={20}
-              className="w-5 h-5 md:w-6 md:h-6"
-            />
+          <div className="ml-2">
+            <FadakLogo />
           </div>
           <div className="text-sm md:text-lg">
-            Realtime API <span className="text-gray-500">Agents</span>
+            دستیار <span className="text-gray-500">هوشمند</span>
           </div>
         </div>
       </div>
@@ -475,7 +445,7 @@ function App() {
           <button
             onClick={() => setIsEventsPaneExpanded(!isEventsPaneExpanded)}
             className="p-2 rounded-lg bg-gray-200 hover:bg-gray-300"
-            title={isEventsPaneExpanded ? "Hide Logs" : "Show Logs"}
+            title={isEventsPaneExpanded ? "پنهان کردن لاگ‌ها" : "نمایش لاگ‌ها"}
           >
             {isEventsPaneExpanded ? <ArrowRightIcon /> : <ArrowLeftIcon />}
           </button>
@@ -485,7 +455,6 @@ function App() {
         </div>
       )}
 
-      {/* Mobile Main content - FIXED HEIGHT */}
       {isMobile && (
         <div className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 min-h-0 overflow-hidden">

@@ -53,7 +53,6 @@ function DesktopTranscript({
     setPrevLogs(transcriptItems);
   }, [transcriptItems]);
 
-  // Autofocus on text box input on load
   useEffect(() => {
     if (canSend && inputRef.current) {
       inputRef.current.focus();
@@ -77,26 +76,25 @@ function DesktopTranscript({
     <div className="flex flex-col flex-1 bg-white min-h-0 rounded-xl">
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex items-center justify-between px-6 py-3 sticky top-0 z-10 text-base border-b bg-white rounded-t-xl">
-          <span className="font-semibold">Transcript</span>
+          <span className="font-semibold">تاریخچه گفتگو</span>
           <div className="flex gap-x-2">
             <button
               onClick={handleCopyDesktopTranscript}
-              className="w-24 text-sm px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 flex items-center justify-center gap-x-1"
+              className="w-32 text-sm px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 flex items-center justify-center gap-x-1"
             >
               <ClipboardCopyIcon />
-              {justCopied ? "Copied!" : "Copy"}
+              {justCopied ? "کپی شد!" : "کپی"}
             </button>
             <button
               onClick={downloadRecording}
               className="w-40 text-sm px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 flex items-center justify-center gap-x-1"
             >
               <DownloadIcon />
-              <span>Download Audio</span>
+              <span>دریافت فایل صوتی</span>
             </button>
           </div>
         </div>
 
-        {/* DesktopTranscript Content */}
         <div
           ref={desktopTranscriptRef}
           className="overflow-auto p-4 flex flex-col gap-y-4 h-full"
@@ -122,7 +120,7 @@ function DesktopTranscript({
 
               if (type === "MESSAGE") {
                 const isUser = role === "user";
-                const containerClasses = `flex justify-end flex-col ${
+                const containerClasses = `flex flex-col ${
                   isUser ? "items-end" : "items-start"
                 }`;
                 const bubbleBase = `max-w-lg p-3 ${
@@ -191,7 +189,7 @@ function DesktopTranscript({
                       {title}
                     </div>
                     {expanded && data && (
-                      <div className="text-gray-800 text-left">
+                      <div className="text-gray-800 text-right">
                         <pre className="border-l-2 ml-1 border-gray-200 whitespace-pre-wrap break-words font-mono text-xs mb-2 mt-2 pl-2">
                           {JSON.stringify(data, null, 2)}
                         </pre>
@@ -200,14 +198,13 @@ function DesktopTranscript({
                   </div>
                 );
               } else {
-                // Fallback if type is neither MESSAGE nor BREADCRUMB
                 return (
                   <div
                     key={itemId}
                     className="flex justify-center text-gray-500 text-sm italic font-mono"
                   >
-                    Unknown item type: {type}{" "}
-                    <span className="ml-2 text-xs">{timestamp}</span>
+                    نوع آیتم نامشخص: {type}{" "}
+                    <span className="mr-2 text-xs">{timestamp}</span>
                   </div>
                 );
               }
@@ -227,14 +224,14 @@ function DesktopTranscript({
             }
           }}
           className="flex-1 px-4 py-2 focus:outline-none"
-          placeholder="Type a message..."
+          placeholder="پیام خود را بنویسید..."
         />
         <button
           onClick={onSendMessage}
           disabled={!canSend || !userText.trim()}
           className="bg-gray-900 text-white rounded-full px-2 py-2 disabled:opacity-50"
         >
-          <Image src="arrow.svg" alt="Send" width={24} height={24} />
+          <Image src="/arrow.svg" alt="Send" width={24} height={24} />
         </button>
       </div>
     </div>

@@ -53,7 +53,6 @@ function MobileTranscript({
     setPrevLogs(transcriptItems);
   }, [transcriptItems]);
 
-  // Autofocus on text box input on load
   useEffect(() => {
     if (canSend && inputRef.current) {
       inputRef.current.focus();
@@ -72,9 +71,8 @@ function MobileTranscript({
 
   return (
     <div className="flex flex-col h-full bg-white rounded-xl shadow-sm">
-      {/* Header for mobile */}
       <div className="flex-shrink-0 flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200 rounded-t-xl">
-        <h2 className="text-lg font-semibold text-gray-800">Conversation</h2>
+        <h2 className="text-lg font-semibold text-gray-800">گفتگو</h2>
 
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
@@ -89,10 +87,10 @@ function MobileTranscript({
             />
             <span className="text-sm font-medium hidden sm:inline">
               {isConnected
-                ? "Connected"
+                ? "اتصال برقرار شد"
                 : isConnecting
-                ? "Connecting..."
-                : "Disconnected"}
+                ? "در حال اتصال..."
+                : "اتصال برقرار نیست"}
             </span>
           </div>
 
@@ -105,12 +103,11 @@ function MobileTranscript({
                 : "bg-green-100 text-green-700 hover:bg-green-200"
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
-            {isConnected ? "Disconnect" : "Connect"}
+            {isConnected ? "قطع اتصال" : "اتصال"}
           </button>
         </div>
       </div>
 
-      {/* Transcript Content - SCROLLABLE AREA */}
       <div
         ref={transcriptRef}
         className="flex-1 overflow-auto p-4 flex flex-col gap-y-4"
@@ -136,7 +133,7 @@ function MobileTranscript({
 
             if (type === "MESSAGE") {
               const isUser = role === "user";
-              const containerClasses = `flex justify-end flex-col ${
+              const containerClasses = `flex flex-col ${
                 isUser ? "items-end" : "items-start"
               }`;
               const bubbleBase = `max-w-full p-3 ${
@@ -220,15 +217,14 @@ function MobileTranscript({
                 </div>
               );
             } else {
-              // Fallback if type is neither MESSAGE nor BREADCRUMB
               return (
                 <div
                   key={itemId}
                   className="flex justify-center text-gray-400 text-sm italic p-3 bg-gray-50 rounded-lg"
                 >
                   <span className="text-xs mr-2">•</span>
-                  Unknown item type: {type}
-                  <span className="ml-2 text-xs text-gray-400">
+                  نوع آیتم نامشخص: {type}
+                  <span className="mr-2 text-xs text-gray-400">
                     {timestamp}
                   </span>
                 </div>
@@ -237,7 +233,6 @@ function MobileTranscript({
           })}
       </div>
 
-      {/* Input area - only show when connected */}
       <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white rounded-b-xl">
         <div className="flex gap-2">
           <input
@@ -246,7 +241,7 @@ function MobileTranscript({
             value={userText}
             onChange={(e) => setUserText(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Type a message..."
+            placeholder="پیام خود را بنویسید..."
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             disabled={!canSend}
           />
@@ -255,11 +250,10 @@ function MobileTranscript({
             disabled={!userText.trim() || !canSend}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Send
+            ارسال
           </button>
         </div>
 
-        {/* Download recording button */}
         {canSend && (
           <div className="mt-3 flex justify-center">
             <button
@@ -267,7 +261,7 @@ function MobileTranscript({
               className="text-xs text-gray-500 hover:text-gray-700 underline flex items-center"
             >
               <svg
-                className="w-4 h-4 mr-1"
+                className="w-4 h-4 ml-1"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -279,7 +273,7 @@ function MobileTranscript({
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                 />
               </svg>
-              Download Recording
+              دریافت فایل صوتی
             </button>
           </div>
         )}

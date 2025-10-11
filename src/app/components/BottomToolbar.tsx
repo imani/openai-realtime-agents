@@ -7,7 +7,7 @@ interface BottomToolbarProps {
   isPTTActive: boolean;
   setIsPTTActive: (val: boolean) => void;
   isPTTUserSpeaking: boolean;
-  isAutoDetectSpeaking: boolean; // Add this prop
+  isAutoDetectSpeaking: boolean;
   handleTalkButtonDown: () => void;
   handleTalkButtonUp: () => void;
   isMobile: boolean;
@@ -19,7 +19,7 @@ function BottomToolbar({
   isPTTActive,
   setIsPTTActive,
   isPTTUserSpeaking,
-  isAutoDetectSpeaking, // Add this prop
+  isAutoDetectSpeaking,
   handleTalkButtonDown,
   handleTalkButtonUp,
   isMobile,
@@ -30,9 +30,20 @@ function BottomToolbar({
   return (
     <div className="p-4 bg-white border-t border-gray-200 shadow-lg">
       <div className="flex flex-col md:flex-column items-center justify-evenly gap-4">
-        {/* Connection Section */}
         {!isMobile && (
           <div className="flex items-center gap-4">
+            <button
+              onClick={onToggleConnection}
+              disabled={isConnecting}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isConnected
+                  ? "bg-red-100 text-red-700 hover:bg-red-200"
+                  : "bg-green-100 text-green-700 hover:bg-green-200"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isConnected ? "قطع اتصال" : "اتصال"}
+            </button>
+
             <div className="flex items-center gap-2">
               <div
                 className={`w-3 h-3 rounded-full ${
@@ -45,28 +56,15 @@ function BottomToolbar({
               />
               <span className="text-sm font-medium">
                 {isConnected
-                  ? "Connected"
+                  ? "اتصال برقرار شد"
                   : isConnecting
-                  ? "Connecting..."
-                  : "Disconnected"}
+                  ? "در حال اتصال..."
+                  : "اتصال برقرار نیست"}
               </span>
             </div>
-
-            <button
-              onClick={onToggleConnection}
-              disabled={isConnecting}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isConnected
-                  ? "bg-red-100 text-red-700 hover:bg-red-200"
-                  : "bg-green-100 text-green-700 hover:bg-green-200"
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {isConnected ? "Disconnect" : "Connect"}
-            </button>
           </div>
         )}
 
-        {/* Push-to-Talk Section */}
         <div className="flex flex-col items-center gap-3">
           <div className="flex items-center gap-2">
             <input
@@ -81,13 +79,11 @@ function BottomToolbar({
               htmlFor="push-to-talk"
               className="text-sm font-medium cursor-pointer select-none"
             >
-              Push to Talk
+              صحبت با فشردن دکمه
             </label>
           </div>
 
-          {/* Show different UI based on PTT mode */}
           {isPTTActive ? (
-            // PTT Mode: Show talk button
             <button
               onMouseDown={handleTalkButtonDown}
               onMouseUp={handleTalkButtonUp}
@@ -117,13 +113,11 @@ function BottomToolbar({
               `}
               />
 
-              {/* Pulsing animation when speaking */}
               {isPTTUserSpeaking && (
                 <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75" />
               )}
             </button>
           ) : (
-            // Auto-detect Mode: Show status indicator
             <div className="flex flex-col items-center gap-2">
               <div
                 className={`
@@ -146,7 +140,6 @@ function BottomToolbar({
                   <path d="M12 15c1.66 0 2.99-1.34 2.99-3L15 6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 15 6.7 12H5c0 3.42 2.72 6.23 6 6.72V22h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
                 </svg>
 
-                {/* Animated pulse when connected and listening */}
                 {isConnected && (
                   <div
                     className={`absolute inset-0 rounded-full ${
@@ -155,7 +148,6 @@ function BottomToolbar({
                   />
                 )}
 
-                {/* Voice activity animation bars */}
                 {isAutoDetectSpeaking && (
                   <div className="absolute -bottom-1 flex space-x-0.5">
                     {[1, 2, 3].map((bar) => (
@@ -176,33 +168,34 @@ function BottomToolbar({
                 {isConnected ? (
                   isAutoDetectSpeaking ? (
                     <span className="text-green-600 font-medium animate-pulse">
-                      Detecting Speech...
+                      در حال تشخیص صدا...
                     </span>
                   ) : (
-                    "Listening..."
+                    "در حال شنیدن..."
                   )
                 ) : (
-                  "Disconnected"
+                  "اتصال برقرار نیست"
                 )}
                 <br />
                 <span className="text-xs text-gray-400">
-                  {isConnected ? "Speak naturally" : "Connect to start"}
+                  {isConnected
+                    ? "به طور طبیعی صحبت کنید"
+                    : "برای شروع متصل شوید"}
                 </span>
               </div>
             </div>
           )}
 
-          {/* Speaking status indicator */}
           {isPTTUserSpeaking && isPTTActive && (
             <div className="text-sm text-blue-600 font-medium animate-pulse">
-              Speaking...
+              در حال صحبت کردن...
             </div>
           )}
 
           {isAutoDetectSpeaking && !isPTTActive && (
             <div className="text-sm text-green-600 font-medium animate-pulse flex items-center gap-1">
               <div className="w-2 h-2 bg-green-600 rounded-full animate-ping" />
-              Voice Detected
+              صدا تشخیص داده شد
             </div>
           )}
         </div>
