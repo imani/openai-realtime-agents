@@ -22,13 +22,13 @@ export default function VoiceChatModal({
   isOpen,
   onClose,
   currentState,
-  transcribedText,
-  aiResponse,
-  isAiTyping,
-  setAiResponse,
-  setIsAiTyping,
-  setTranscribedText,
   setVoiceState,
+  transcribedText,
+  setTranscribedText,
+  aiResponse,
+  setAiResponse,
+  isAiTyping,
+  setIsAiTyping,
 }: VoiceChatModalProps) {
   const [typedAi, setTypedAi] = useState("");
   const typeIntervalRef = useRef<number | null>(null);
@@ -43,9 +43,10 @@ export default function VoiceChatModal({
     []
   );
 
+  // Typing effect
   useEffect(() => {
     if (typeIntervalRef.current) {
-      window.clearInterval(typeIntervalRef.current);
+      clearInterval(typeIntervalRef.current);
       typeIntervalRef.current = null;
     }
 
@@ -53,17 +54,16 @@ export default function VoiceChatModal({
       setTypedAi("");
       let i = 0;
       const len = aiResponse?.length ?? 0;
-      const speed = Math.max(
-        8,
-        Math.min(30, Math.floor(800 / Math.max(1, len)))
-      );
+      const speed = 25;
 
       typeIntervalRef.current = window.setInterval(() => {
-        i += 1;
+        i++;
         setTypedAi(aiResponse.slice(0, i));
         if (i >= len) {
-          window.clearInterval(typeIntervalRef.current!);
+          clearInterval(typeIntervalRef.current!);
           typeIntervalRef.current = null;
+          setIsAiTyping(false);
+          setVoiceState("silent");
         }
       }, speed);
     } else {
@@ -72,104 +72,94 @@ export default function VoiceChatModal({
 
     return () => {
       if (typeIntervalRef.current) {
-        window.clearInterval(typeIntervalRef.current);
+        clearInterval(typeIntervalRef.current);
         typeIntervalRef.current = null;
       }
     };
   }, [aiResponse, isAiTyping]);
 
+  // Auto flow simulation: listen → think → speak
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setVoiceState("listening");
+
+    const steps = [
+      () => {
+        setTranscribedText("سلام! حالت چطوره؟");
+        setVoiceState("thinking");
+      },
+      () => {
+        setAiResponse("من خوبم، ممنون! چطور می‌تونم کمکت کنم؟");
+        setIsAiTyping(true);
+        setVoiceState("speaking");
+      },
+    ];
+
+    let i = 0;
+    const timer = setInterval(() => {
+      if (i < steps.length) steps[i++]();
+      else clearInterval(timer);
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [isOpen]);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") handleClose();
     }
     if (isOpen) window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
+
+  const handleClose = () => {
+    setVoiceState("silent");
+    setTranscribedText("");
+    setAiResponse("");
+    setIsAiTyping(false);
+    onClose();
+  };
 
   if (!isOpen) return null;
 
-  const rings = [
-    { size: 300, blur: 30, delay: "0s" },
-    { size: 420, blur: 36, delay: "0.3s" },
-    { size: 540, blur: 44, delay: "0.6s" },
-  ];
-
-  const centralSize = 120;
   const mainColor = colors[currentState];
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-md md:hidden animate-fade-in"
-    >
-      {/* Close Button */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-md md:hidden animate-fade-in">
       <button
-        onClick={onClose}
-        aria-label="Close voice modal"
+        onClick={handleClose}
         className="absolute top-5 left-5 p-2 rounded-full bg-gray-100 shadow hover:bg-gray-200 transition"
       >
         <Cross2Icon className="w-5 h-5 text-gray-600" />
       </button>
 
-      {/* Voice Visualization */}
-      <div className="flex flex-col items-center justify-center gap-6">
-        <div
-          className="relative flex items-center justify-center"
-          style={{
-            width: rings[rings.length - 1].size,
-            height: rings[rings.length - 1].size,
-          }}
-        >
-          {rings.map((r, idx) => (
-            <div
-              key={idx}
-              className={`absolute rounded-full pointer-events-none ${
-                currentState === "speaking"
-                  ? "animate-wave-speaking"
-                  : currentState === "listening"
-                  ? "animate-wave-listening"
-                  : currentState === "thinking"
-                  ? "animate-wave-thinking"
-                  : ""
-              }`}
-              style={{
-                width: r.size,
-                height: r.size,
-                animationDelay: r.delay,
-                boxShadow: `0 0 ${r.blur}px ${mainColor}33`,
-                border: `2px solid ${mainColor}33`,
-                background: `radial-gradient(circle at center, ${mainColor}22, transparent 45%)`,
-              }}
-            />
-          ))}
-
-          {/* Center Circle */}
+      <div className="flex flex-col items-center gap-6">
+        {/* Animated microphone */}
+        <div className="relative w-[280px] h-[280px] flex items-center justify-center">
           <div
-            className={`flex items-center justify-center rounded-full shadow-xl ${
+            className={`absolute inset-0 rounded-full ${
               currentState === "speaking"
-                ? "animate-center-speaking"
+                ? "animate-wave-speaking"
                 : currentState === "listening"
-                ? "animate-center-listening"
+                ? "animate-wave-listening"
                 : currentState === "thinking"
-                ? "animate-center-thinking"
+                ? "animate-wave-thinking"
                 : ""
             }`}
             style={{
-              width: centralSize,
-              height: centralSize,
-              background:
-                "linear-gradient(180deg, rgba(255,255,255,0.9), rgba(245,245,245,0.8))",
+              border: `2px solid ${mainColor}33`,
+              boxShadow: `0 0 30px ${mainColor}22`,
+            }}
+          />
+          <div
+            className="relative w-[120px] h-[120px] rounded-full flex items-center justify-center shadow-xl"
+            style={{
+              background: "linear-gradient(180deg, #fff, #f3f3f3)",
               border: `6px solid ${mainColor}`,
             }}
           >
-            <svg
-              width="34"
-              height="34"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden
-            >
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
               <path
                 d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z"
                 fill={mainColor}
@@ -182,23 +172,21 @@ export default function VoiceChatModal({
           </div>
         </div>
 
-        {/* Conversation Boxes */}
-        <div className="w-full max-w-xl px-6">
-          <div className="w-full bg-gray-50 rounded-xl p-3 mb-3 min-h-[56px] shadow-sm">
-            <div className="text-xs text-gray-500 mb-1 text-right">شما</div>
-            <div className="text-base leading-relaxed break-words text-gray-800 font-medium text-right">
-              {transcribedText || (
-                <span className="text-gray-400">در حال گوش دادن...</span>
-              )}
+        {/* Conversation */}
+        <div className="w-full max-w-md px-6 text-right">
+          <div className="bg-gray-50 rounded-xl p-3 mb-3 shadow-sm">
+            <div className="text-xs text-gray-500 mb-1">شما</div>
+            <div className="text-gray-800 text-base">
+              {transcribedText || "در حال گوش دادن..."}
             </div>
           </div>
 
-          <div className="w-full bg-gray-50 rounded-xl p-3 min-h-[80px] shadow-sm">
-            <div className="text-xs text-gray-500 mb-1 text-right">دستیار</div>
-            <div className="text-base leading-relaxed break-words text-gray-800 min-h-[44px] text-right">
-              <span>{typedAi}</span>
+          <div className="bg-gray-50 rounded-xl p-3 shadow-sm min-h-[80px]">
+            <div className="text-xs text-gray-500 mb-1">دستیار</div>
+            <div className="text-gray-800 text-base">
+              {typedAi}
               {isAiTyping && (
-                <span className="inline-block w-1 h-5 align-middle ml-1 bg-gray-800 animate-pulse" />
+                <span className="inline-block w-1 h-5 bg-gray-800 ml-1 animate-pulse" />
               )}
             </div>
           </div>
@@ -211,13 +199,12 @@ export default function VoiceChatModal({
 }
 
 function StateBadge({ state, color }: { state: string; color: string }) {
-  const labelMap: Record<string, string> = {
+  const labels: Record<string, string> = {
     thinking: "در حال فکر کردن",
     speaking: "در حال صحبت کردن",
     listening: "در حال شنیدن",
     silent: "آماده",
   };
-
   return (
     <div
       className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium shadow-sm"
@@ -230,7 +217,7 @@ function StateBadge({ state, color }: { state: string; color: string }) {
         className="w-2 h-2 rounded-full"
         style={{ background: color, boxShadow: `0 0 8px ${color}66` }}
       />
-      <span>{labelMap[state]}</span>
+      <span>{labels[state]}</span>
     </div>
   );
 }
