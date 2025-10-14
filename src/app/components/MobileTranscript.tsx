@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { SessionStatus, TranscriptItem } from "@/app/types";
 import { useTranscript } from "@/app/contexts/TranscriptContext";
 import { GuardrailChip } from "./GuardrailChip";
+import VoiceChatModal from "./VoiceChatModal";
 
 export interface MobileTranscriptProps {
   sessionStatus: SessionStatus;
@@ -29,6 +30,14 @@ function MobileTranscript({
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const [prevLogs, setPrevLogs] = useState<TranscriptItem[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const [isVoiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [voiceState, setVoiceState] = useState<
+    "thinking" | "speaking" | "listening" | "silent"
+  >("silent");
+  const [transcribedText, setTranscribedText] = useState("");
+  const [aiResponse, setAiResponse] = useState("");
+  const [isAiTyping, setIsAiTyping] = useState(false);
 
   function scrollToBottom() {
     if (transcriptRef.current) {
@@ -254,6 +263,13 @@ function MobileTranscript({
           </button>
         </div>
 
+        <button
+          onClick={() => setVoiceModalOpen(true)}
+          className="... md:hidden"
+        >
+          شروع گفت‌وگو صوتی
+        </button>
+
         {canSend && (
           <div className="mt-3 flex justify-center">
             <button
@@ -277,6 +293,14 @@ function MobileTranscript({
             </button>
           </div>
         )}
+        <VoiceChatModal
+          isOpen={isVoiceModalOpen}
+          onClose={() => setVoiceModalOpen(false)}
+          currentState={voiceState}
+          transcribedText={transcribedText}
+          aiResponse={aiResponse}
+          isAiTyping={isAiTyping}
+        />
       </div>
     </div>
   );
