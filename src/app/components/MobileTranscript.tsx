@@ -297,9 +297,13 @@ function MobileTranscript({
           isOpen={isVoiceModalOpen}
           onClose={() => setVoiceModalOpen(false)}
           currentState={voiceState}
+          setVoiceState={setVoiceState}
           transcribedText={transcribedText}
+          setTranscribedText={setTranscribedText}
           aiResponse={aiResponse}
+          setAiResponse={setAiResponse}
           isAiTyping={isAiTyping}
+          setIsAiTyping={setIsAiTyping}
         />
       </div>
     </div>
