@@ -20,6 +20,14 @@ interface VoiceChatModalProps {
   onStopListening: () => void;
   isListening: boolean;
   isSpeechSupported: boolean;
+  sessionStatus: "CONNECTED" | "CONNECTING" | "DISCONNECTED";
+  onSendVoiceMessage: (message: string) => void;
+  onInterrupt: () => void;
+  onTalkButtonDown: () => void;
+  onTalkButtonUp: () => void;
+  isPTTActive: boolean;
+  setIsPTTActive: (val: boolean) => void;
+  isAutoDetectSpeaking: boolean;
 }
 
 export default function VoiceChatModal({
@@ -37,16 +45,19 @@ export default function VoiceChatModal({
   onStopListening,
   isListening,
   isSpeechSupported,
+  // New props
+  sessionStatus,
+  onSendVoiceMessage,
+  onInterrupt,
+  onTalkButtonDown,
+  onTalkButtonUp,
+  isPTTActive,
+  setIsPTTActive,
+  isAutoDetectSpeaking,
 }: VoiceChatModalProps) {
   const [typedAi, setTypedAi] = useState("");
-  const [isPTTActive, setIsPTTActive] = useState(true); // Push-to-talk enabled by default
   const [isUserSpeaking, setIsUserSpeaking] = useState(false);
-  const [isAutoDetectSpeaking, setIsAutoDetectSpeaking] = useState(false);
   const typeIntervalRef = useRef<number | null>(null);
-  const silenceTimerRef = useRef<number | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
 
   const colors = useMemo(
     () => ({
@@ -93,122 +104,42 @@ export default function VoiceChatModal({
     };
   }, [aiResponse, isAiTyping, setIsAiTyping, setVoiceState]);
 
-  // Initialize audio analysis for auto-detect
+  // Handle voice activity from the real API
   useEffect(() => {
-    if (isOpen && !isPTTActive && isSpeechSupported) {
-      initializeAudioAnalysis();
+    if (isAutoDetectSpeaking && !isPTTActive) {
+      setVoiceState("listening");
     }
+  }, [isAutoDetectSpeaking, isPTTActive, setVoiceState]);
 
-    return () => {
-      cleanupAudioAnalysis();
-    };
-  }, [isOpen, isPTTActive, isSpeechSupported]);
-
-  // Auto-detect speech when not in PTT mode
+  // Handle when speech is transcribed and ready to send
   useEffect(() => {
-    if (!isPTTActive && isListening && !isUserSpeaking) {
-      startAutoDetect();
-    } else {
-      stopAutoDetect();
+    if (transcribedText && !isListening && sessionStatus === "CONNECTED") {
+      // Send the transcribed text to the AI
+      onSendVoiceMessage(transcribedText);
+      setVoiceState("thinking");
     }
-  }, [isPTTActive, isListening, isUserSpeaking]);
-
-  const initializeAudioAnalysis = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-
-      mediaStreamRef.current = stream;
-      audioContextRef.current = new AudioContext();
-      analyserRef.current = audioContextRef.current.createAnalyser();
-
-      const source = audioContextRef.current.createMediaStreamSource(stream);
-      source.connect(analyserRef.current);
-
-      analyserRef.current.fftSize = 256;
-    } catch (error) {
-      console.error("Error initializing audio analysis:", error);
-    }
-  };
-
-  const cleanupAudioAnalysis = () => {
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-    analyserRef.current = null;
-  };
-
-  const startAutoDetect = () => {
-    if (!analyserRef.current) return;
-
-    const checkAudioLevel = () => {
-      if (!analyserRef.current) return;
-
-      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-      analyserRef.current.getByteFrequencyData(dataArray);
-
-      const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-      const isSpeaking = average > 20; // Threshold for speech detection
-
-      if (isSpeaking && !isAutoDetectSpeaking) {
-        setIsAutoDetectSpeaking(true);
-        setVoiceState("listening");
-
-        // Clear any existing silence timer
-        if (silenceTimerRef.current) {
-          clearTimeout(silenceTimerRef.current);
-        }
-
-        // Set timer to detect when user stops speaking
-        silenceTimerRef.current = window.setTimeout(() => {
-          setIsAutoDetectSpeaking(false);
-          if (isListening) {
-            onStopListening(); // Stop listening and process speech
-          }
-        }, 2000); // 2 seconds of silence
-      } else if (!isSpeaking && isAutoDetectSpeaking) {
-        setIsAutoDetectSpeaking(false);
-      }
-
-      if (isListening) {
-        requestAnimationFrame(checkAudioLevel);
-      }
-    };
-
-    requestAnimationFrame(checkAudioLevel);
-  };
-
-  const stopAutoDetect = () => {
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
-    setIsAutoDetectSpeaking(false);
-  };
+  }, [
+    transcribedText,
+    isListening,
+    sessionStatus,
+    onSendVoiceMessage,
+    setVoiceState,
+  ]);
 
   const handleTalkButtonDown = () => {
-    if (!isSpeechSupported) return;
+    if (sessionStatus !== "CONNECTED") return;
 
+    onInterrupt();
     setIsUserSpeaking(true);
     setVoiceState("listening");
-    onStartListening();
+    onTalkButtonDown();
   };
 
   const handleTalkButtonUp = () => {
+    if (sessionStatus !== "CONNECTED" || !isUserSpeaking) return;
+
     setIsUserSpeaking(false);
-    if (isListening) {
-      onStopListening(); // This will trigger speech processing
-    }
+    onTalkButtonUp();
   };
 
   const handleMicrophoneClick = () => {
@@ -226,23 +157,30 @@ export default function VoiceChatModal({
     if (isUserSpeaking) {
       handleTalkButtonUp();
     }
-    if (isListening && !isPTTActive) {
-      onStopListening();
-    }
   };
 
   // Auto-start listening when modal opens in auto-detect mode
   useEffect(() => {
-    if (isOpen && !isPTTActive && isSpeechSupported) {
+    if (
+      isOpen &&
+      !isPTTActive &&
+      isSpeechSupported &&
+      sessionStatus === "CONNECTED"
+    ) {
       onStartListening();
     }
-  }, [isOpen, isPTTActive, isSpeechSupported]);
+  }, [isOpen, isPTTActive, isSpeechSupported, sessionStatus]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") handleClose();
       // Space bar for push-to-talk
-      if (e.key === " " && isPTTActive && isSpeechSupported) {
+      if (
+        e.key === " " &&
+        isPTTActive &&
+        isSpeechSupported &&
+        sessionStatus === "CONNECTED"
+      ) {
         if (e.type === "keydown" && !isUserSpeaking) {
           handleTalkButtonDown();
         } else if (e.type === "keyup" && isUserSpeaking) {
@@ -259,16 +197,12 @@ export default function VoiceChatModal({
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keyup", onKey);
     };
-  }, [isOpen, isPTTActive, isUserSpeaking, isSpeechSupported]);
+  }, [isOpen, isPTTActive, isUserSpeaking, isSpeechSupported, sessionStatus]);
 
   const handleClose = () => {
     if (typeIntervalRef.current) {
       clearInterval(typeIntervalRef.current);
     }
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-    }
-    cleanupAudioAnalysis();
 
     if (isUserSpeaking) {
       handleTalkButtonUp();
@@ -283,14 +217,13 @@ export default function VoiceChatModal({
     setIsAiTyping(false);
     setTypedAi("");
     setIsUserSpeaking(false);
-    setIsAutoDetectSpeaking(false);
     onClose();
   };
 
   if (!isOpen) return null;
 
   const mainColor = colors[currentState];
-  // const isConnected = true; // Assuming connected when modal is open
+  const isConnected = sessionStatus === "CONNECTED";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-md md:hidden animate-fade-in">
@@ -309,7 +242,7 @@ export default function VoiceChatModal({
             type="checkbox"
             checked={isPTTActive}
             onChange={togglePTTMode}
-            disabled={!isSpeechSupported}
+            disabled={!isSpeechSupported || !isConnected}
             className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
           />
           <label
@@ -319,6 +252,15 @@ export default function VoiceChatModal({
             صحبت با فشردن دکمه
           </label>
         </div>
+
+        {/* Connection Status */}
+        {!isConnected && (
+          <div className="text-sm text-red-600 font-medium bg-red-50 px-3 py-1 rounded-full">
+            {sessionStatus === "CONNECTING"
+              ? "در حال اتصال..."
+              : "اتصال برقرار نیست"}
+          </div>
+        )}
 
         {/* Animated microphone */}
         <div className="relative w-[280px] h-[280px] flex items-center justify-center">
@@ -345,7 +287,9 @@ export default function VoiceChatModal({
           <button
             onClick={isPTTActive ? handleMicrophoneClick : undefined}
             disabled={
-              !isSpeechSupported || (!isPTTActive && isAutoDetectSpeaking)
+              !isSpeechSupported ||
+              !isConnected ||
+              (!isPTTActive && isAutoDetectSpeaking)
             }
             className={`
               relative w-[120px] h-[120px] rounded-full flex items-center justify-center shadow-xl 
@@ -363,7 +307,11 @@ export default function VoiceChatModal({
                         : "bg-gray-100 border-gray-300 text-gray-400"
                     }`
               }
-              ${!isSpeechSupported ? "opacity-50 cursor-not-allowed" : ""}
+              ${
+                !isSpeechSupported || !isConnected
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              }
             `}
             style={{
               border: `6px solid ${mainColor}`,
@@ -410,7 +358,9 @@ export default function VoiceChatModal({
             <div className="text-gray-800 text-base">
               {transcribedText || (
                 <span className="text-gray-400">
-                  {isPTTActive
+                  {!isConnected
+                    ? "برای شروع گفتگو اتصال را برقرار کنید"
+                    : isPTTActive
                     ? "دکمه را فشار دهید و صحبت کنید"
                     : "به طور طبیعی صحبت کنید"}
                 </span>
@@ -427,7 +377,9 @@ export default function VoiceChatModal({
               )}
               {!typedAi && !isAiTyping && (
                 <span className="text-gray-400">
-                  پاسخ اینجا نمایش داده می‌شود...
+                  {!isConnected
+                    ? "در انتظار اتصال..."
+                    : "پاسخ اینجا نمایش داده می‌شود..."}
                 </span>
               )}
             </div>
@@ -441,6 +393,7 @@ export default function VoiceChatModal({
             color={mainColor}
             isUserSpeaking={isUserSpeaking}
             isAutoDetectSpeaking={isAutoDetectSpeaking}
+            isConnected={isConnected}
           />
 
           {/* Status messages */}
@@ -470,7 +423,7 @@ export default function VoiceChatModal({
             پایان گفتگو
           </button>
 
-          {isPTTActive && (
+          {isPTTActive && isConnected && (
             <div className="text-xs text-gray-500 text-center">
               برای صحبت کردن دکمه میکروفون را فشار دهید
               <br />
@@ -488,11 +441,13 @@ function StateBadge({
   color,
   isUserSpeaking = false,
   isAutoDetectSpeaking = false,
+  isConnected = false,
 }: {
   state: string;
   color: string;
   isUserSpeaking?: boolean;
   isAutoDetectSpeaking?: boolean;
+  isConnected?: boolean;
 }) {
   const labels: Record<string, string> = {
     thinking: "در حال فکر کردن",
@@ -501,7 +456,7 @@ function StateBadge({
       isUserSpeaking || isAutoDetectSpeaking
         ? "در حال شنیدن صحبت شما"
         : "در حال شنیدن",
-    silent: "آماده",
+    silent: isConnected ? "آماده" : "اتصال برقرار نیست",
   };
 
   return (

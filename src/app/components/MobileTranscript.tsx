@@ -15,6 +15,13 @@ export interface MobileTranscriptProps {
   onSendMessage: () => void;
   canSend: boolean;
   downloadRecording: () => void;
+  onSendVoiceMessage: (message: string) => void;
+  onInterrupt: () => void;
+  onTalkButtonDown: () => void;
+  onTalkButtonUp: () => void;
+  isPTTActive: boolean;
+  setIsPTTActive: (val: boolean) => void;
+  isAutoDetectSpeaking: boolean;
 }
 
 function MobileTranscript({
@@ -25,6 +32,13 @@ function MobileTranscript({
   onSendMessage,
   canSend,
   downloadRecording,
+  onSendVoiceMessage,
+  onInterrupt,
+  onTalkButtonDown,
+  onTalkButtonUp,
+  isPTTActive,
+  setIsPTTActive,
+  isAutoDetectSpeaking,
 }: MobileTranscriptProps) {
   const {
     transcriptItems,
@@ -500,6 +514,14 @@ function MobileTranscript({
           onStopListening={stopVoiceRecognition}
           isListening={isListening}
           isSpeechSupported={isSpeechSupported}
+          sessionStatus={sessionStatus}
+          onSendVoiceMessage={onSendVoiceMessage}
+          onInterrupt={onInterrupt}
+          onTalkButtonDown={onTalkButtonDown}
+          onTalkButtonUp={onTalkButtonUp}
+          isPTTActive={isPTTActive}
+          setIsPTTActive={setIsPTTActive}
+          isAutoDetectSpeaking={isAutoDetectSpeaking}
         />
       </div>
     </div>
