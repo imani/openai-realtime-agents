@@ -26,6 +26,12 @@ interface VoiceChatModalProps {
   isSpeechSupported: boolean;
   sessionStatus: "CONNECTED" | "CONNECTING" | "DISCONNECTED";
   onSendVoiceMessage: (message: string) => void;
+  setIsPTTActive: (val: boolean) => void;
+  isAutoDetectSpeaking: boolean;
+  onInterrupt: () => void;
+  onTalkButtonDown: () => void;
+  onTalkButtonUp: () => void;
+  isPTTActive: boolean;
   transcriptItems?: Array<{
     itemId: string;
     type: "MESSAGE" | "BREADCRUMB";
@@ -53,19 +59,22 @@ export default function VoiceChatModal({
   isSpeechSupported,
   sessionStatus,
   onSendVoiceMessage,
+  setIsPTTActive,
+  isAutoDetectSpeaking,
   transcriptItems = [],
 }: VoiceChatModalProps) {
   const [typedAi, setTypedAi] = useState("");
   const [isMuted, setIsMuted] = useState(false);
   const typeIntervalRef = useRef<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasStartedRef = useRef(false);
 
   const colors = useMemo(
     () => ({
-      thinking: "#8B5CF6", // Purple for thinking
-      speaking: "#06b6d4", // Cyan for speaking
-      listening: "#10B981", // Green for listening
-      silent: "#6B7280", // Gray for silent
+      thinking: "#8B5CF6",
+      speaking: "#06b6d4",
+      listening: "#10B981",
+      silent: "#6B7280",
     }),
     []
   );
@@ -118,40 +127,72 @@ export default function VoiceChatModal({
     };
   }, [aiResponse, isAiTyping, setIsAiTyping, setVoiceState]);
 
-  // Auto-start listening when modal opens
+  // CRITICAL FIX: Set PTT to false and start auto-detect when modal opens
   useEffect(() => {
-    if (
-      isOpen &&
-      isSpeechSupported &&
-      sessionStatus === "CONNECTED" &&
-      !isMuted
-    ) {
-      onStartListening();
-      setVoiceState("listening");
-    }
-  }, [isOpen, isSpeechSupported, sessionStatus, isMuted]);
+    if (isOpen && isSpeechSupported && sessionStatus === "CONNECTED") {
+      // Disable PTT mode to enable auto-detect
+      setIsPTTActive(false);
+      hasStartedRef.current = true;
 
-  // Handle when speech is transcribed and ready to send
+      // Start listening in auto-detect mode
+      if (!isMuted) {
+        onStartListening();
+        setVoiceState("listening");
+      }
+    }
+
+    return () => {
+      // Cleanup when modal closes
+      if (hasStartedRef.current) {
+        onStopListening();
+        setVoiceState("silent");
+        hasStartedRef.current = false;
+      }
+    };
+  }, [isOpen, isSpeechSupported, sessionStatus]);
+
+  // CRITICAL FIX: Handle auto-detect speaking state from parent
   useEffect(() => {
-    if (
-      transcribedText &&
-      !isListening &&
-      sessionStatus === "CONNECTED" &&
+    if (isAutoDetectSpeaking && !isMuted) {
+      setVoiceState("listening");
+    } else if (
+      !isAutoDetectSpeaking &&
+      currentState === "listening" &&
       !isMuted
     ) {
-      onSendVoiceMessage(transcribedText);
-      setVoiceState("thinking");
-      setTranscribedText("");
+      // When user stops speaking, process the message
+      if (transcribedText) {
+        onSendVoiceMessage(transcribedText);
+        setVoiceState("thinking");
+        setTranscribedText("");
+      } else {
+        setVoiceState("silent");
+      }
     }
   }, [
-    transcribedText,
-    isListening,
-    sessionStatus,
+    isAutoDetectSpeaking,
     isMuted,
+    transcribedText,
+    currentState,
     onSendVoiceMessage,
     setVoiceState,
     setTranscribedText,
   ]);
+
+  // CRITICAL FIX: Handle mute/unmute properly
+  useEffect(() => {
+    if (isOpen && sessionStatus === "CONNECTED") {
+      if (isMuted) {
+        // Mute: Stop listening
+        onStopListening();
+        setVoiceState("silent");
+      } else {
+        // Unmute: Start listening in auto-detect mode
+        onStartListening();
+        setVoiceState("listening");
+      }
+    }
+  }, [isMuted, isOpen, sessionStatus]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -159,21 +200,7 @@ export default function VoiceChatModal({
   }, [assistantMessages, typedAi]);
 
   const toggleMute = () => {
-    if (isMuted) {
-      // Unmute - start listening
-      setIsMuted(false);
-      if (sessionStatus === "CONNECTED") {
-        onStartListening();
-        setVoiceState("listening");
-      }
-    } else {
-      // Mute - stop listening
-      setIsMuted(true);
-      if (isListening) {
-        onStopListening();
-        setVoiceState("silent");
-      }
-    }
+    setIsMuted(!isMuted);
   };
 
   useEffect(() => {
@@ -194,6 +221,7 @@ export default function VoiceChatModal({
       clearInterval(typeIntervalRef.current);
     }
 
+    // Stop listening when closing
     if (isListening) {
       onStopListening();
     }
@@ -248,6 +276,13 @@ export default function VoiceChatModal({
         {isMuted && isConnected && (
           <div className="text-sm text-orange-600 font-medium bg-orange-50 px-4 py-2 rounded-full shadow-sm">
             🔇 حالت سکوت فعال است
+          </div>
+        )}
+
+        {/* Mode Status */}
+        {isConnected && !isMuted && (
+          <div className="text-sm text-green-600 font-medium bg-green-50 px-4 py-2 rounded-full shadow-sm">
+            🎤 حالت تشخیص خودکار فعال
           </div>
         )}
 
