@@ -16,6 +16,9 @@ interface VoiceChatModalProps {
   setAiResponse: React.Dispatch<React.SetStateAction<string>>;
   isAiTyping: boolean;
   setIsAiTyping: React.Dispatch<React.SetStateAction<boolean>>;
+  onStartListening: () => void;
+  onStopListening: () => void;
+  isListening: boolean;
 }
 
 export default function VoiceChatModal({
@@ -29,9 +32,13 @@ export default function VoiceChatModal({
   setAiResponse,
   isAiTyping,
   setIsAiTyping,
+  onStartListening,
+  onStopListening,
+  isListening,
 }: VoiceChatModalProps) {
   const [typedAi, setTypedAi] = useState("");
   const typeIntervalRef = useRef<number | null>(null);
+  const [showRetry, setShowRetry] = useState(false);
 
   const colors = useMemo(
     () => ({
@@ -43,14 +50,14 @@ export default function VoiceChatModal({
     []
   );
 
-  // Typing effect
+  // Typing effect for AI response
   useEffect(() => {
     if (typeIntervalRef.current) {
       clearInterval(typeIntervalRef.current);
       typeIntervalRef.current = null;
     }
 
-    if (isAiTyping) {
+    if (isAiTyping && aiResponse) {
       setTypedAi("");
       let i = 0;
       const len = aiResponse?.length ?? 0;
@@ -64,10 +71,11 @@ export default function VoiceChatModal({
           typeIntervalRef.current = null;
           setIsAiTyping(false);
           setVoiceState("silent");
+          setShowRetry(true);
         }
       }, speed);
     } else {
-      setTypedAi(aiResponse ?? "");
+      setTypedAi(aiResponse || "");
     }
 
     return () => {
@@ -76,34 +84,31 @@ export default function VoiceChatModal({
         typeIntervalRef.current = null;
       }
     };
-  }, [aiResponse, isAiTyping]);
+  }, [aiResponse, isAiTyping, setIsAiTyping, setVoiceState]);
 
-  // Auto flow simulation: listen → think → speak
+  // Auto-start listening when modal opens
   useEffect(() => {
-    if (!isOpen) return;
-
-    setVoiceState("listening");
-
-    const steps = [
-      () => {
-        setTranscribedText("سلام! حالت چطوره؟");
-        setVoiceState("thinking");
-      },
-      () => {
-        setAiResponse("من خوبم، ممنون! چطور می‌تونم کمکت کنم؟");
-        setIsAiTyping(true);
-        setVoiceState("speaking");
-      },
-    ];
-
-    let i = 0;
-    const timer = setInterval(() => {
-      if (i < steps.length) steps[i++]();
-      else clearInterval(timer);
-    }, 3000);
-
-    return () => clearInterval(timer);
+    if (isOpen) {
+      onStartListening();
+      setShowRetry(false);
+    }
   }, [isOpen]);
+
+  // Handle when user finishes speaking
+  useEffect(() => {
+    if (transcribedText && !isListening && currentState === "listening") {
+      setVoiceState("thinking");
+    }
+  }, [transcribedText, isListening, currentState, setVoiceState]);
+
+  // Retry listening after AI finishes speaking
+  const handleRetry = () => {
+    setTranscribedText("");
+    setAiResponse("");
+    setTypedAi("");
+    setShowRetry(false);
+    onStartListening();
+  };
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -114,11 +119,27 @@ export default function VoiceChatModal({
   }, [isOpen]);
 
   const handleClose = () => {
+    if (typeIntervalRef.current) {
+      clearInterval(typeIntervalRef.current);
+    }
+    onStopListening();
     setVoiceState("silent");
     setTranscribedText("");
     setAiResponse("");
     setIsAiTyping(false);
+    setTypedAi("");
+    setShowRetry(false);
     onClose();
+  };
+
+  const handleMicrophoneClick = () => {
+    if (currentState === "listening") {
+      onStopListening();
+    } else if (currentState === "silent" && showRetry) {
+      handleRetry();
+    } else if (currentState === "silent") {
+      onStartListening();
+    }
   };
 
   if (!isOpen) return null;
@@ -134,8 +155,8 @@ export default function VoiceChatModal({
         <Cross2Icon className="w-5 h-5 text-gray-600" />
       </button>
 
-      <div className="flex flex-col items-center gap-6">
-        {/* Animated microphone */}
+      <div className="flex flex-col items-center gap-6 w-full max-w-sm">
+        {/* Animated microphone with click handler */}
         <div className="relative w-[280px] h-[280px] flex items-center justify-center">
           <div
             className={`absolute inset-0 rounded-full ${
@@ -152,8 +173,10 @@ export default function VoiceChatModal({
               boxShadow: `0 0 30px ${mainColor}22`,
             }}
           />
-          <div
-            className="relative w-[120px] h-[120px] rounded-full flex items-center justify-center shadow-xl"
+          <button
+            onClick={handleMicrophoneClick}
+            disabled={currentState === "thinking" || isAiTyping}
+            className="relative w-[120px] h-[120px] rounded-full flex items-center justify-center shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-transform hover:scale-105 active:scale-95"
             style={{
               background: "linear-gradient(180deg, #fff, #f3f3f3)",
               border: `6px solid ${mainColor}`,
@@ -169,15 +192,26 @@ export default function VoiceChatModal({
                 fill={mainColor}
               />
             </svg>
-          </div>
+
+            {/* Listening animation */}
+            {currentState === "listening" && (
+              <div className="absolute inset-0 rounded-full border-2 border-orange-400 animate-ping" />
+            )}
+          </button>
         </div>
 
         {/* Conversation */}
         <div className="w-full max-w-md px-6 text-right">
-          <div className="bg-gray-50 rounded-xl p-3 mb-3 shadow-sm">
+          <div className="bg-gray-50 rounded-xl p-3 mb-3 shadow-sm min-h-[60px]">
             <div className="text-xs text-gray-500 mb-1">شما</div>
             <div className="text-gray-800 text-base">
-              {transcribedText || "در حال گوش دادن..."}
+              {transcribedText || (
+                <span className="text-gray-400">
+                  {currentState === "listening"
+                    ? "در حال گوش دادن..."
+                    : "برای شروع صحبت کنید"}
+                </span>
+              )}
             </div>
           </div>
 
@@ -188,11 +222,38 @@ export default function VoiceChatModal({
               {isAiTyping && (
                 <span className="inline-block w-1 h-5 bg-gray-800 ml-1 animate-pulse" />
               )}
+              {!typedAi && !isAiTyping && (
+                <span className="text-gray-400">
+                  پاسخ اینجا نمایش داده می‌شود...
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        <StateBadge state={currentState} color={mainColor} />
+        {/* Controls */}
+        <div className="flex flex-col gap-3 w-full px-6">
+          <StateBadge state={currentState} color={mainColor} />
+
+          {showRetry && (
+            <button
+              onClick={handleRetry}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+              </svg>
+              صحبت مجدد
+            </button>
+          )}
+
+          <button
+            onClick={handleClose}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            پایان گفتگو
+          </button>
+        </div>
       </div>
     </div>
   );
