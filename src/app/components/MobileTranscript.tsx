@@ -257,6 +257,7 @@ function MobileTranscript({
     setTranscribedText("");
     setAiResponse("");
     setIsAiTyping(false);
+    setIsListening(false);
   };
 
   const isConnected = sessionStatus === "CONNECTED";
@@ -498,6 +499,7 @@ function MobileTranscript({
           onStartListening={startVoiceRecognition}
           onStopListening={stopVoiceRecognition}
           isListening={isListening}
+          isSpeechSupported={isSpeechSupported}
         />
       </div>
     </div>
