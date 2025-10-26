@@ -467,12 +467,6 @@ function App() {
               downloadRecording={downloadRecording}
               canSend={sessionStatus === "CONNECTED"}
               onSendVoiceMessage={sendUserText}
-              onInterrupt={interrupt}
-              onTalkButtonDown={handleTalkButtonDown}
-              onTalkButtonUp={handleTalkButtonUp}
-              isPTTActive={isPTTActive}
-              setIsPTTActive={setIsPTTActive}
-              isAutoDetectSpeaking={isAutoDetectSpeaking}
             />
           </div>
 
