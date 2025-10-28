@@ -239,15 +239,28 @@ export default function VoiceChatModal({
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    return () => {
+      // When modal closes, stop listening and set PTT to active
+      if (hasStartedRef.current) {
+        onStopListening();
+        setIsPTTActive(true); // Set PTT to active when closing modal
+        setVoiceState("silent");
+        hasStartedRef.current = false;
+      }
+    };
+  }, []);
+
   const handleClose = () => {
     if (typeIntervalRef.current) {
       clearInterval(typeIntervalRef.current);
     }
 
-    // Stop listening when closing
+    // Stop listening and set PTT to active when closing
     if (isListening) {
       onStopListening();
     }
+    setIsPTTActive(true); // CRITICAL: Set PTT to active when modal closes
 
     setVoiceState("silent");
     setTranscribedText("");
