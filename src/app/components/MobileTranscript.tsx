@@ -40,11 +40,7 @@ function MobileTranscript({
   onTalkButtonUp,
   setIsPTTActive,
 }: MobileTranscriptProps) {
-  const {
-    transcriptItems,
-    toggleTranscriptItemExpand,
-    // TODO: addMessage
-  } = useTranscript();
+  const { transcriptItems, toggleTranscriptItemExpand } = useTranscript();
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const [prevLogs, setPrevLogs] = useState<TranscriptItem[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -143,6 +139,18 @@ function MobileTranscript({
     }
   }, []); // Empty dependency array - only run once on mount
 
+  // CRITICAL FIX: Sync voice activity with thinking state
+  useEffect(() => {
+    // When user stops speaking and we have transcribed text, set thinking state
+    if (
+      !isAutoDetectSpeaking &&
+      transcribedText &&
+      voiceState === "listening"
+    ) {
+      setVoiceState("thinking");
+    }
+  }, [isAutoDetectSpeaking, transcribedText, voiceState]);
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -150,80 +158,22 @@ function MobileTranscript({
     }
   };
 
+  // CRITICAL FIX: Use real API call instead of mock
   const handleVoiceMessage = async (message: string) => {
     if (!message.trim()) return;
 
-    // Add user voice message to transcript
-    // TODO: addMessage(message, "user");
-
-    // Simulate AI processing
+    // Set thinking state immediately when user finishes speaking
     setVoiceState("thinking");
 
     try {
-      // In a real implementation, you would call your AI API here
-      const response = await simulateAIResponse(message);
+      // Use the REAL API call - this will trigger the actual OpenAI processing
+      onSendVoiceMessage(message);
 
-      setAiResponse(response);
-      setIsAiTyping(true);
-      setVoiceState("speaking");
-
-      // TODO: Add AI response to transcript after typing completes
-      /* setTimeout(() => {
-        addMessage(response, "assistant");
-      }, response.length * 50 + 1000); */ // Adjust timing based on response length
+      // Note: The "speaking" state will be triggered by the actual API response
+      // through your OpenAI realtime events automatically
     } catch (error) {
-      console.error("AI response error:", error);
+      console.error("API call error:", error);
       setVoiceState("silent");
-    }
-  };
-
-  const simulateAIResponse = async (userMessage: string): Promise<string> => {
-    // Simulate API call delay
-    await new Promise((resolve) =>
-      setTimeout(resolve, 1000 + Math.random() * 2000)
-    );
-
-    const responses: Record<string, string[]> = {
-      greeting: [
-        "سلام! چطور می‌تونم کمکتون کنم؟",
-        "درود! چه سوالی دارید؟",
-        "سلام! خوشحالم که باهاتون صحبت می‌کنم. چطور می‌تونم کمک کنم؟",
-      ],
-      product: [
-        "ما محصولات متنوعی داریم. کدوم دسته بندی مد نظر شماست؟",
-        "برای ارائه پیشنهاد بهتر، لطفاً بفرمایید چه نوع محصولی نیاز دارید؟",
-        "محصولات ما شامل الکترونیک، خانه و آشپزخانه، و لوازم شخصی می‌شوند. کدوم حوزه مورد علاقه شماست؟",
-      ],
-      price: [
-        "قیمت‌ها بسته به مدل و ویژگی‌ها متفاوت است. محصول خاصی مد نظر دارید؟",
-        "برای اطلاع از قیمت دقیق، لطفاً نام محصول رو بفرمایید.",
-        "ما محصولات در رنج قیمتی مختلفی داریم. بودجه شما چقدر است؟",
-      ],
-      default: [
-        "متشکرم از سوال شما! آیا اطلاعات بیشتری نیاز دارید؟",
-        "خیلی ممنون! سوال خوبی پرسیدید. آیا می‌تونم کمک دیگری بکنم؟",
-        "عالیست! برای اطلاعات تخصصی‌تر می‌تونید با پشتیبانی فنی تماس بگیرید.",
-      ],
-    };
-
-    const message = userMessage.toLowerCase();
-
-    if (message.includes("سلام") || message.includes("درود")) {
-      return responses.greeting[
-        Math.floor(Math.random() * responses.greeting.length)
-      ];
-    } else if (message.includes("محصول") || message.includes("کالا")) {
-      return responses.product[
-        Math.floor(Math.random() * responses.product.length)
-      ];
-    } else if (message.includes("قیمت") || message.includes("هزینه")) {
-      return responses.price[
-        Math.floor(Math.random() * responses.price.length)
-      ];
-    } else {
-      return responses.default[
-        Math.floor(Math.random() * responses.default.length)
-      ];
     }
   };
 
@@ -261,7 +211,6 @@ function MobileTranscript({
       return;
     }
     setVoiceModalOpen(true);
-    // Start listening will be handled by VoiceChatModal's useEffect
   };
 
   const handleVoiceModalClose = () => {
