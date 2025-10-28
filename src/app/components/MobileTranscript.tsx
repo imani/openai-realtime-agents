@@ -358,11 +358,11 @@ function MobileTranscript({
       </div>
 
       <div className="flex-shrink-0 p-4 border-t border-gray-100">
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-1 items-center">
           <button
             onClick={handleVoiceModalOpen}
             disabled={!canSend || !isSpeechSupported}
-            className="p-3 rounded-xl bg-gray-50 hover:bg-gray-100 disabled:opacity-30 transition-colors"
+            className="px-2 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 disabled:opacity-30 transition-colors"
           >
             <VoiceChatIcon />
           </button>
@@ -373,14 +373,14 @@ function MobileTranscript({
             onChange={(e) => setUserText(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="پیام خود را بنویسید..."
-            className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right bg-gray-50"
+            className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right bg-gray-50"
             disabled={!canSend}
             dir="rtl"
           />
           <button
             onClick={onSendMessage}
             disabled={!userText.trim() || !canSend}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-medium"
+            className="px-3 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors "
           >
             ارسال
           </button>
