@@ -26,12 +26,12 @@ interface VoiceChatModalProps {
   isSpeechSupported: boolean;
   sessionStatus: "CONNECTED" | "CONNECTING" | "DISCONNECTED";
   onSendVoiceMessage: (message: string) => void;
-  setIsPTTActive: (val: boolean) => void;
-  isAutoDetectSpeaking: boolean;
   onInterrupt: () => void;
   onTalkButtonDown: () => void;
   onTalkButtonUp: () => void;
   isPTTActive: boolean;
+  setIsPTTActive: (val: boolean) => void;
+  isAutoDetectSpeaking: boolean;
   transcriptItems?: Array<{
     itemId: string;
     type: "MESSAGE" | "BREADCRUMB";
@@ -59,6 +59,10 @@ export default function VoiceChatModal({
   isSpeechSupported,
   sessionStatus,
   onSendVoiceMessage,
+  // onInterrupt,
+  // onTalkButtonDown,
+  // onTalkButtonUp,
+  isPTTActive,
   setIsPTTActive,
   isAutoDetectSpeaking,
   transcriptItems = [],
@@ -153,12 +157,13 @@ export default function VoiceChatModal({
 
   // CRITICAL FIX: Handle auto-detect speaking state from parent
   useEffect(() => {
-    if (isAutoDetectSpeaking && !isMuted) {
+    if (isAutoDetectSpeaking && !isMuted && !isPTTActive) {
       setVoiceState("listening");
     } else if (
       !isAutoDetectSpeaking &&
       currentState === "listening" &&
-      !isMuted
+      !isMuted &&
+      !isPTTActive
     ) {
       // When user stops speaking, process the message
       if (transcribedText) {
@@ -172,6 +177,7 @@ export default function VoiceChatModal({
   }, [
     isAutoDetectSpeaking,
     isMuted,
+    isPTTActive,
     transcribedText,
     currentState,
     onSendVoiceMessage,
@@ -179,15 +185,36 @@ export default function VoiceChatModal({
     setTranscribedText,
   ]);
 
-  // CRITICAL FIX: Handle mute/unmute properly
+  // CRITICAL FIX: Handle mute/unmute properly with PTT mode switching
+  const toggleMute = () => {
+    if (isMuted) {
+      // Unmute: Switch back to auto-detect mode
+      setIsMuted(false);
+      setIsPTTActive(false); // Disable PTT to enable auto-detect
+      if (sessionStatus === "CONNECTED") {
+        onStartListening();
+        setVoiceState("listening");
+      }
+    } else {
+      // Mute: Switch to PTT mode to completely stop listening
+      setIsMuted(true);
+      setIsPTTActive(true); // Enable PTT to stop auto-detection
+      if (isListening) {
+        onStopListening();
+        setVoiceState("silent");
+      }
+    }
+  };
+
+  // Ensure PTT mode is properly set when modal state changes
   useEffect(() => {
     if (isOpen && sessionStatus === "CONNECTED") {
       if (isMuted) {
-        // Mute: Stop listening
-        onStopListening();
-        setVoiceState("silent");
+        // When muted, ensure PTT is active to stop listening
+        setIsPTTActive(true);
       } else {
-        // Unmute: Start listening in auto-detect mode
+        // When unmuted, ensure PTT is inactive to enable auto-detect
+        setIsPTTActive(false);
         onStartListening();
         setVoiceState("listening");
       }
@@ -198,10 +225,6 @@ export default function VoiceChatModal({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [assistantMessages, typedAi]);
-
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -275,14 +298,14 @@ export default function VoiceChatModal({
         {/* Mute Status */}
         {isMuted && isConnected && (
           <div className="text-sm text-orange-600 font-medium bg-orange-50 px-4 py-2 rounded-full shadow-sm">
-            🔇 حالت سکوت فعال است
+            🔇 حالت سکوت فعال - ربات به صداهای شما گوش نمی‌دهد
           </div>
         )}
 
         {/* Mode Status */}
         {isConnected && !isMuted && (
           <div className="text-sm text-green-600 font-medium bg-green-50 px-4 py-2 rounded-full shadow-sm">
-            🎤 حالت تشخیص خودکار فعال
+            🎤 حالت تشخیص خودکار فعال - صحبت کنید
           </div>
         )}
 
@@ -336,7 +359,11 @@ export default function VoiceChatModal({
               className={`
                 w-32 h-32 rounded-full flex items-center justify-center 
                 shadow-2xl transition-all duration-500
-                ${currentState === "listening" ? "animate-pulse-slow" : ""}
+                ${
+                  currentState === "listening" && !isMuted
+                    ? "animate-pulse-slow"
+                    : ""
+                }
                 ${currentState === "thinking" ? "animate-spin-slow" : ""}
                 ${currentState === "speaking" ? "animate-glow" : ""}
               `}
@@ -347,28 +374,29 @@ export default function VoiceChatModal({
                   0 0 40px ${mainColor}40,
                   inset 0 0 20px ${mainColor}20
                 `,
+                opacity: isMuted ? 0.5 : 1,
               }}
             >
               {/* AI Icon */}
               <div className="text-white text-2xl font-bold">🤖</div>
 
               {/* Voice Activity Waves */}
-              {(currentState === "listening" ||
-                currentState === "speaking") && (
-                <div className="absolute inset-0 rounded-full">
-                  {[1, 2, 3].map((wave) => (
-                    <div
-                      key={wave}
-                      className="absolute inset-0 rounded-full animate-ripple"
-                      style={{
-                        border: `2px solid ${mainColor}`,
-                        animationDelay: `${wave * 0.3}s`,
-                        opacity: 1 - wave * 0.2,
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
+              {(currentState === "listening" || currentState === "speaking") &&
+                !isMuted && (
+                  <div className="absolute inset-0 rounded-full">
+                    {[1, 2, 3].map((wave) => (
+                      <div
+                        key={wave}
+                        className="absolute inset-0 rounded-full animate-ripple"
+                        style={{
+                          border: `2px solid ${mainColor}`,
+                          animationDelay: `${wave * 0.3}s`,
+                          opacity: 1 - wave * 0.2,
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
             </div>
           </div>
         </div>
@@ -419,8 +447,8 @@ export default function VoiceChatModal({
                   {!isConnected
                     ? "برای شروع گفتگو اتصال را برقرار کنید"
                     : isMuted
-                    ? "گوش دادن غیرفعال است - دکمه 🔊 را فشار دهید"
-                    : "در حال گوش دادن... صحبت کنید"}
+                    ? "❌ ربات به صحبت‌های شما گوش نمی‌دهد"
+                    : "✅ در حال گوش دادن... صحبت کنید"}
                 </span>
               )}
             </div>
