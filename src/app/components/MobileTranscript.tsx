@@ -6,6 +6,7 @@ import { SessionStatus, TranscriptItem } from "@/app/types";
 import { useTranscript } from "@/app/contexts/TranscriptContext";
 import { GuardrailChip } from "./GuardrailChip";
 import VoiceChatModal from "./VoiceChatModal";
+import VoiceChatIcon from "./Icons/VoiceChatIcon";
 
 export interface MobileTranscriptProps {
   sessionStatus: SessionStatus;
@@ -16,9 +17,6 @@ export interface MobileTranscriptProps {
   canSend: boolean;
   downloadRecording: () => void;
   onSendVoiceMessage: (message: string) => void;
-  onInterrupt: () => void;
-  onTalkButtonDown: () => void;
-  onTalkButtonUp: () => void;
   isPTTActive: boolean;
   setIsPTTActive: (val: boolean) => void;
   isAutoDetectSpeaking: boolean;
@@ -35,9 +33,6 @@ function MobileTranscript({
   onSendVoiceMessage,
   isAutoDetectSpeaking,
   isPTTActive,
-  onInterrupt,
-  onTalkButtonDown,
-  onTalkButtonUp,
   setIsPTTActive,
 }: MobileTranscriptProps) {
   const { transcriptItems, toggleTranscriptItemExpand } = useTranscript();
@@ -45,7 +40,6 @@ function MobileTranscript({
   const [prevLogs, setPrevLogs] = useState<TranscriptItem[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // Voice chat states
   const [isVoiceModalOpen, setVoiceModalOpen] = useState(false);
   const [voiceState, setVoiceState] = useState<
     "thinking" | "speaking" | "listening" | "silent"
@@ -53,11 +47,12 @@ function MobileTranscript({
   const [transcribedText, setTranscribedText] = useState("");
   const [aiResponse, setAiResponse] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
-
-  // Speech recognition - initialize only on client
   const [recognition, setRecognition] = useState<any>(null);
   const [isListening, setIsListening] = useState(false);
   const [isSpeechSupported, setIsSpeechSupported] = useState(false);
+
+  const isConnected = sessionStatus === "CONNECTED";
+  const isConnecting = sessionStatus === "CONNECTING";
 
   function scrollToBottom() {
     if (transcriptRef.current) {
@@ -78,7 +73,6 @@ function MobileTranscript({
     if (hasNewMessage || hasUpdatedMessage) {
       scrollToBottom();
     }
-
     setPrevLogs(transcriptItems);
   }, [transcriptItems]);
 
@@ -88,18 +82,15 @@ function MobileTranscript({
     }
   }, [canSend]);
 
-  // Initialize speech recognition only on client side
   useEffect(() => {
-    // Check if we're on client and speech recognition is supported
     if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
       setIsSpeechSupported(true);
-
       const SpeechRecognition = (window as any).webkitSpeechRecognition;
       const recognitionInstance = new SpeechRecognition();
 
       recognitionInstance.continuous = false;
       recognitionInstance.interimResults = true;
-      recognitionInstance.lang = "fa-IR"; // Persian language
+      recognitionInstance.lang = "fa-IR";
 
       recognitionInstance.onstart = () => {
         setIsListening(true);
@@ -125,8 +116,6 @@ function MobileTranscript({
         console.error("Speech recognition error:", event.error);
         setIsListening(false);
         setVoiceState("silent");
-
-        // Show error message to user
         if (event.error === "not-allowed") {
           alert("دسترسی به میکروفون مجاز نیست. لطفاً مجوزها را بررسی کنید.");
         }
@@ -137,11 +126,9 @@ function MobileTranscript({
       console.warn("Speech recognition not supported in this browser");
       setIsSpeechSupported(false);
     }
-  }, []); // Empty dependency array - only run once on mount
+  }, []);
 
-  // CRITICAL FIX: Sync voice activity with thinking state
   useEffect(() => {
-    // When user stops speaking and we have transcribed text, set thinking state
     if (
       !isAutoDetectSpeaking &&
       transcribedText &&
@@ -158,19 +145,11 @@ function MobileTranscript({
     }
   };
 
-  // CRITICAL FIX: Use real API call instead of mock
   const handleVoiceMessage = async (message: string) => {
     if (!message.trim()) return;
-
-    // Set thinking state immediately when user finishes speaking
     setVoiceState("thinking");
-
     try {
-      // Use the REAL API call - this will trigger the actual OpenAI processing
       onSendVoiceMessage(message);
-
-      // Note: The "speaking" state will be triggered by the actual API response
-      // through your OpenAI realtime events automatically
     } catch (error) {
       console.error("API call error:", error);
       setVoiceState("silent");
@@ -223,18 +202,14 @@ function MobileTranscript({
     setIsListening(false);
   };
 
-  const isConnected = sessionStatus === "CONNECTED";
-  const isConnecting = sessionStatus === "CONNECTING";
-
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl shadow-sm">
-      <div className="flex-shrink-0 flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200 rounded-t-xl">
-        <h2 className="text-lg font-semibold text-gray-800">گفتگو</h2>
-
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
+    <div className="flex flex-col h-full bg-white">
+      <div className="flex-shrink-0 p-4 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-800">گفتگو</h2>
+          <div className="flex items-center gap-3">
             <div
-              className={`w-3 h-3 rounded-full ${
+              className={`w-2 h-2 rounded-full ${
                 isConnected
                   ? "bg-green-500"
                   : isConnecting
@@ -242,26 +217,18 @@ function MobileTranscript({
                   : "bg-red-500"
               }`}
             />
-            <span className="text-sm font-medium hidden sm:inline">
-              {isConnected
-                ? "اتصال برقرار شد"
-                : isConnecting
-                ? "در حال اتصال..."
-                : "اتصال برقرار نیست"}
-            </span>
+            <button
+              onClick={onToggleConnection}
+              disabled={isConnecting}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                isConnected
+                  ? "bg-red-50 text-red-600 hover:bg-red-100"
+                  : "bg-green-50 text-green-600 hover:bg-green-100"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isConnected ? "قطع اتصال" : "اتصال"}
+            </button>
           </div>
-
-          <button
-            onClick={onToggleConnection}
-            disabled={isConnecting}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              isConnected
-                ? "bg-red-100 text-red-700 hover:bg-red-200"
-                : "bg-green-100 text-green-700 hover:bg-green-200"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {isConnected ? "قطع اتصال" : "اتصال"}
-          </button>
         </div>
       </div>
 
@@ -390,8 +357,15 @@ function MobileTranscript({
           })}
       </div>
 
-      <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white rounded-b-xl">
-        <div className="flex gap-2">
+      <div className="flex-shrink-0 p-4 border-t border-gray-100">
+        <div className="flex gap-3 items-center">
+          <button
+            onClick={handleVoiceModalOpen}
+            disabled={!canSend || !isSpeechSupported}
+            className="p-3 rounded-xl bg-gray-50 hover:bg-gray-100 disabled:opacity-30 transition-colors"
+          >
+            <VoiceChatIcon />
+          </button>
           <input
             ref={inputRef}
             type="text"
@@ -399,34 +373,19 @@ function MobileTranscript({
             onChange={(e) => setUserText(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="پیام خود را بنویسید..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
+            className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right bg-gray-50"
             disabled={!canSend}
             dir="rtl"
           />
           <button
             onClick={onSendMessage}
             disabled={!userText.trim() || !canSend}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-medium"
           >
             ارسال
           </button>
         </div>
-
         <div className="mt-3 flex flex-col gap-2">
-          <button
-            onClick={handleVoiceModalOpen}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors md:hidden flex items-center justify-center gap-2"
-            disabled={!canSend || !isSpeechSupported}
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
-              <path d="M19 11a1 1 0 0 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.92V21a1 1 0 1 0 2 0v-3.08A7 7 0 0 0 19 11z" />
-            </svg>
-            {isSpeechSupported && canSend
-              ? "شروع گفت‌وگو صوتی"
-              : "گفتگوی صوتی پشتیبانی نمی‌شود"}
-          </button>
-
           <button
             onClick={downloadRecording}
             className="text-xs text-gray-500 hover:text-gray-700 underline flex items-center justify-center gap-1"
@@ -447,33 +406,30 @@ function MobileTranscript({
             دریافت فایل صوتی
           </button>
         </div>
-
-        <VoiceChatModal
-          isOpen={isVoiceModalOpen}
-          onClose={handleVoiceModalClose}
-          currentState={voiceState}
-          setVoiceState={setVoiceState}
-          transcribedText={transcribedText}
-          setTranscribedText={setTranscribedText}
-          aiResponse={aiResponse}
-          setAiResponse={setAiResponse}
-          isAiTyping={isAiTyping}
-          setIsAiTyping={setIsAiTyping}
-          onStartListening={startVoiceRecognition}
-          onStopListening={stopVoiceRecognition}
-          isListening={isListening}
-          isSpeechSupported={isSpeechSupported}
-          sessionStatus={sessionStatus}
-          onSendVoiceMessage={onSendVoiceMessage}
-          onInterrupt={onInterrupt}
-          onTalkButtonDown={onTalkButtonDown}
-          onTalkButtonUp={onTalkButtonUp}
-          isPTTActive={isPTTActive}
-          setIsPTTActive={setIsPTTActive}
-          isAutoDetectSpeaking={isAutoDetectSpeaking}
-          transcriptItems={transcriptItems}
-        />
       </div>
+
+      <VoiceChatModal
+        isOpen={isVoiceModalOpen}
+        onClose={handleVoiceModalClose}
+        currentState={voiceState}
+        setVoiceState={setVoiceState}
+        transcribedText={transcribedText}
+        setTranscribedText={setTranscribedText}
+        aiResponse={aiResponse}
+        setAiResponse={setAiResponse}
+        isAiTyping={isAiTyping}
+        setIsAiTyping={setIsAiTyping}
+        onStartListening={startVoiceRecognition}
+        onStopListening={stopVoiceRecognition}
+        isListening={isListening}
+        isSpeechSupported={isSpeechSupported}
+        sessionStatus={sessionStatus}
+        onSendVoiceMessage={onSendVoiceMessage}
+        isPTTActive={isPTTActive}
+        setIsPTTActive={setIsPTTActive}
+        isAutoDetectSpeaking={isAutoDetectSpeaking}
+        transcriptItems={transcriptItems}
+      />
     </div>
   );
 }
