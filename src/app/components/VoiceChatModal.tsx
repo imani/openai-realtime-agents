@@ -217,19 +217,6 @@ export default function VoiceChatModal({
   }, [isOpen]);
 
   useEffect(() => {
-    if (isAiTyping && aiResponse) {
-      // AI is generating response (thinking)
-      setVoiceState("thinking");
-    } else if (!isAiTyping && aiResponse) {
-      // AI finished thinking and is now "speaking"
-      setVoiceState("speaking");
-    } else if (!aiResponse) {
-      // No AI response yet or conversation reset
-      setVoiceState("silent");
-    }
-  }, [isAiTyping, aiResponse, setVoiceState]);
-
-  useEffect(() => {
     if (currentState === "speaking") {
       const timeout = setTimeout(() => {
         setVoiceState("silent");
@@ -342,15 +329,13 @@ export default function VoiceChatModal({
 
             <div className="bg-gray-50 rounded-2xl p-4">
               <div className="text-gray-800 text-sm">
-                {transcribedText || (
-                  <span className="text-gray-400">
-                    {!isConnected
-                      ? "برای شروع گفتگو اتصال را برقرار کنید"
-                      : isMuted
-                      ? "❌ دستیار صحبت‌های شما را نمی‌شنود"
-                      : "✅ در حال شنیدن... صحبت کنید"}
-                  </span>
-                )}
+                <span className="text-gray-400">
+                  {!isConnected
+                    ? "برای شروع گفتگو اتصال را برقرار کنید"
+                    : isMuted
+                    ? "❌ دستیار صحبت‌های شما را نمی‌شنود"
+                    : "✅ در حال شنیدن... صحبت کنید"}
+                </span>
               </div>
             </div>
           </div>
