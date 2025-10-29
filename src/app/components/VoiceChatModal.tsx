@@ -216,6 +216,28 @@ export default function VoiceChatModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen]);
 
+  useEffect(() => {
+    if (isAiTyping && aiResponse) {
+      // AI is generating response (thinking)
+      setVoiceState("thinking");
+    } else if (!isAiTyping && aiResponse) {
+      // AI finished thinking and is now "speaking"
+      setVoiceState("speaking");
+    } else if (!aiResponse) {
+      // No AI response yet or conversation reset
+      setVoiceState("silent");
+    }
+  }, [isAiTyping, aiResponse, setVoiceState]);
+
+  useEffect(() => {
+    if (currentState === "speaking") {
+      const timeout = setTimeout(() => {
+        setVoiceState("silent");
+      }, 1500);
+      return () => clearTimeout(timeout);
+    }
+  }, [currentState, setVoiceState]);
+
   const handleClose = () => {
     if (typeIntervalRef.current) clearInterval(typeIntervalRef.current);
     if (isListening) onStopListening();

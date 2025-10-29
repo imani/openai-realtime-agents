@@ -190,6 +190,7 @@ function App() {
       logClientEvent(data, "error.no_ephemeral_key");
       console.error("No ephemeral key provided by the server");
       setSessionStatus("DISCONNECTED");
+      alert("متاسفانه خطایی رخ داده است!");
       return null;
     }
 
