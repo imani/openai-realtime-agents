@@ -3,22 +3,19 @@ import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 
-// UI components
 import MobileTranscript from "./components/MobileTranscript";
 import Events from "./components/Events";
 import BottomToolbar from "./components/BottomToolbar";
+import DesktopTranscript from "./components/DesktopTranscript";
 
-// Types
 import { SessionStatus } from "@/app/types";
 import type { RealtimeAgent } from "@openai/agents/realtime";
 
-// Context providers & hooks
 import { useTranscript } from "@/app/contexts/TranscriptContext";
 import { useEvent } from "@/app/contexts/EventContext";
 import { useRealtimeSession } from "./hooks/useRealtimeSession";
 import { createModerationGuardrail } from "@/app/agentConfigs/guardrails";
 
-// Agent configs
 import { allAgentSets, defaultAgentSetKey } from "@/app/agentConfigs";
 import { customerServiceRetailScenario } from "@/app/agentConfigs/customerServiceRetail";
 import { chatSupervisorScenario } from "@/app/agentConfigs/chatSupervisor";
@@ -26,19 +23,17 @@ import { customerServiceRetailCompanyName } from "@/app/agentConfigs/customerSer
 import { chatSupervisorCompanyName } from "@/app/agentConfigs/chatSupervisor";
 import { simpleHandoffScenario } from "@/app/agentConfigs/simpleHandoff";
 
-// Map used by connect logic for scenarios defined via the SDK.
+import useAudioDownload from "./hooks/useAudioDownload";
+import { useHandleSessionHistory } from "./hooks/useHandleSessionHistory";
+import { useMediaQuery } from "./hooks/useMediaQuery";
+import { ArrowLeftIcon, ArrowRightIcon } from "@radix-ui/react-icons";
+import { FadakLogo } from "./components/logo";
+
 const sdkScenarioMap: Record<string, RealtimeAgent[]> = {
   simpleHandoff: simpleHandoffScenario,
   customerServiceRetail: customerServiceRetailScenario,
   chatSupervisor: chatSupervisorScenario,
 };
-
-import useAudioDownload from "./hooks/useAudioDownload";
-import { useHandleSessionHistory } from "./hooks/useHandleSessionHistory";
-import { useMediaQuery } from "./hooks/useMediaQuery";
-import DesktopTranscript from "./components/DesktopTranscript";
-import { ArrowLeftIcon, ArrowRightIcon } from "@radix-ui/react-icons";
-import { FadakLogo } from "./components/logo";
 
 function App() {
   const searchParams = useSearchParams()!;
@@ -51,6 +46,24 @@ function App() {
   const [selectedAgentConfigSet, setSelectedAgentConfigSet] = useState<
     RealtimeAgent[] | null
   >(null);
+  const [sessionStatus, setSessionStatus] =
+    useState<SessionStatus>("DISCONNECTED");
+  const [isEventsPaneExpanded, setIsEventsPaneExpanded] = useState<boolean>(
+    !isMobile
+  );
+  const [userText, setUserText] = useState<string>("");
+  const [isPTTActive, setIsPTTActive] = useState<boolean>(true);
+  const [isPTTUserSpeaking, setIsPTTUserSpeaking] = useState<boolean>(false);
+  const [isAutoDetectSpeaking, setIsAutoDetectSpeaking] =
+    useState<boolean>(false);
+
+  const [isAudioPlaybackEnabled, setIsAudioPlaybackEnabled] = useState<boolean>(
+    () => {
+      if (typeof window === "undefined") return true;
+      const stored = localStorage.getItem("audioPlaybackEnabled");
+      return stored ? stored === "true" : true;
+    }
+  );
 
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const handoffTriggeredRef = useRef(false);
@@ -78,25 +91,6 @@ function App() {
         setSelectedAgentName(agentName);
       },
     });
-
-  const [sessionStatus, setSessionStatus] =
-    useState<SessionStatus>("DISCONNECTED");
-
-  const [isEventsPaneExpanded, setIsEventsPaneExpanded] = useState<boolean>(
-    !isMobile
-  );
-  const [userText, setUserText] = useState<string>("");
-  const [isPTTActive, setIsPTTActive] = useState<boolean>(true);
-  const [isPTTUserSpeaking, setIsPTTUserSpeaking] = useState<boolean>(false);
-  const [isAudioPlaybackEnabled, setIsAudioPlaybackEnabled] = useState<boolean>(
-    () => {
-      if (typeof window === "undefined") return true;
-      const stored = localStorage.getItem("audioPlaybackEnabled");
-      return stored ? stored === "true" : true;
-    }
-  );
-  const [isAutoDetectSpeaking, setIsAutoDetectSpeaking] =
-    useState<boolean>(false);
 
   const { startRecording, stopRecording, downloadRecording } =
     useAudioDownload();
@@ -132,7 +126,6 @@ function App() {
 
     const agents = allAgentSets[finalAgentConfig];
     const agentKeyToUse = agents[0]?.name || "";
-
     setSelectedAgentName(agentKeyToUse);
     setSelectedAgentConfigSet(agents);
   }, [searchParams]);
@@ -197,6 +190,7 @@ function App() {
       logClientEvent(data, "error.no_ephemeral_key");
       console.error("No ephemeral key provided by the server");
       setSessionStatus("DISCONNECTED");
+      alert("متاسفانه خطایی رخ داده است!");
       return null;
     }
 
@@ -233,9 +227,7 @@ function App() {
           initialAgents: reorderedAgents,
           audioElement: sdkAudioElement,
           outputGuardrails: [guardrail],
-          extraContext: {
-            addTranscriptBreadcrumb,
-          },
+          extraContext: { addTranscriptBreadcrumb },
         });
       } catch (err) {
         console.error("Error connecting via SDK:", err);
@@ -284,15 +276,12 @@ function App() {
 
     sendEvent({
       type: "session.update",
-      session: {
-        turn_detection: turnDetection,
-      },
+      session: { turn_detection: turnDetection },
     });
 
     if (shouldTriggerResponse) {
       sendSimulatedUserMessage("hi");
     }
-    return;
   };
 
   const handleSendTextMessage = () => {
@@ -311,14 +300,12 @@ function App() {
   const handleTalkButtonDown = () => {
     if (sessionStatus !== "CONNECTED") return;
     interrupt();
-
     setIsPTTUserSpeaking(true);
     sendClientEvent({ type: "input_audio_buffer.clear" }, "clear PTT buffer");
   };
 
   const handleTalkButtonUp = () => {
     if (sessionStatus !== "CONNECTED" || !isPTTUserSpeaking) return;
-
     setIsPTTUserSpeaking(false);
     sendClientEvent({ type: "input_audio_buffer.commit" }, "commit PTT");
     sendClientEvent({ type: "response.create" }, "trigger response PTT");
@@ -335,19 +322,17 @@ function App() {
 
   useEffect(() => {
     const storedPushToTalkUI = localStorage.getItem("pushToTalkUI");
-    if (storedPushToTalkUI) {
-      setIsPTTActive(storedPushToTalkUI === "true");
-    }
+    if (storedPushToTalkUI) setIsPTTActive(storedPushToTalkUI === "true");
+
     const storedLogsExpanded = localStorage.getItem("logsExpanded");
-    if (storedLogsExpanded) {
+    if (storedLogsExpanded)
       setIsEventsPaneExpanded(storedLogsExpanded === "true");
-    }
+
     const storedAudioPlaybackEnabled = localStorage.getItem(
       "audioPlaybackEnabled"
     );
-    if (storedAudioPlaybackEnabled) {
+    if (storedAudioPlaybackEnabled)
       setIsAudioPlaybackEnabled(storedAudioPlaybackEnabled === "true");
-    }
   }, []);
 
   useEffect(() => {
@@ -413,28 +398,20 @@ function App() {
   }, [isPTTActive, sessionStatus]);
 
   return (
-    <div
-      dir="rtl"
-      className="text-base flex flex-col h-screen bg-gray-100 text-gray-800 relative overflow-hidden"
-    >
-      {/* Header */}
-      <div className="flex-shrink-0 p-4 md:p-5 text-lg font-semibold flex justify-between items-center bg-white shadow-sm">
-        <div
-          className="flex items-center cursor-pointer"
-          onClick={() => window.location.reload()}
-        >
-          <div className="ml-2">
+    <div dir="rtl" className="flex flex-col h-screen bg-white text-gray-800">
+      <div className="flex-shrink-0 p-4 border-b border-gray-100">
+        <div className="flex items-center">
+          <div className="ml-3">
             <FadakLogo />
           </div>
-          <div className="text-sm md:text-lg">
-            دستیار <span className="text-gray-500">هوشمند</span>
+          <div className="text-lg font-semibold">
+            دستیار <span className="text-gray-400">هوشمند</span>
           </div>
         </div>
       </div>
 
-      {/* Desktop Main content */}
       {!isMobile && (
-        <div className="flex flex-1 flex-col md:flex-row gap-2 px-2 overflow-hidden relative">
+        <div className="flex flex-1 flex-col md:flex-row gap-4 p-4 overflow-hidden">
           <DesktopTranscript
             userText={userText}
             setUserText={setUserText}
@@ -466,6 +443,10 @@ function App() {
               onSendMessage={handleSendTextMessage}
               downloadRecording={downloadRecording}
               canSend={sessionStatus === "CONNECTED"}
+              onSendVoiceMessage={sendUserText}
+              isPTTActive={isPTTActive}
+              setIsPTTActive={setIsPTTActive}
+              isAutoDetectSpeaking={isAutoDetectSpeaking}
             />
           </div>
 
@@ -477,17 +458,19 @@ function App() {
         </div>
       )}
 
-      <BottomToolbar
-        sessionStatus={sessionStatus}
-        onToggleConnection={onToggleConnection}
-        isPTTActive={isPTTActive}
-        setIsPTTActive={setIsPTTActive}
-        isPTTUserSpeaking={isPTTUserSpeaking}
-        handleTalkButtonDown={handleTalkButtonDown}
-        handleTalkButtonUp={handleTalkButtonUp}
-        isMobile={isMobile}
-        isAutoDetectSpeaking={isAutoDetectSpeaking}
-      />
+      {!isMobile && (
+        <BottomToolbar
+          sessionStatus={sessionStatus}
+          onToggleConnection={onToggleConnection}
+          isPTTActive={isPTTActive}
+          setIsPTTActive={setIsPTTActive}
+          isPTTUserSpeaking={isPTTUserSpeaking}
+          handleTalkButtonDown={handleTalkButtonDown}
+          handleTalkButtonUp={handleTalkButtonUp}
+          isMobile={isMobile}
+          isAutoDetectSpeaking={isAutoDetectSpeaking}
+        />
+      )}
     </div>
   );
 }
